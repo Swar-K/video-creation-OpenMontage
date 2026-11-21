@@ -3,12 +3,12 @@
   "project_id": "amazon-B00002NCJI",
   "pipeline_type": "hybrid",
   "stage": "idea",
-  "status": "awaiting_human",
+  "status": "completed",
   "timestamp": "2026-11-21T12:14:14.606Z",
   "style_playbook": "clean-professional",
   "checkpoint_policy": "guided",
   "human_approval_required": true,
-  "human_approved": false,
+  "human_approved": true,
   "artifacts": {
     "brief": {
       "version": "1.0",
@@ -285,8 +285,8 @@
         ]
       },
       "approval": {
-        "status": "pending",
-        "user_notes": "Concept decision approved: retain C1, C2, and C3; use C1 for the first 15-second preview. This does not approve the remaining idea-stage decisions (Remotion runtime selection, templated composition mode, and restrained motion), nor does it approve script, scene-plan, assets, edit, or compose stages."
+        "status": "approved",
+        "user_notes": "User approved C1, C2, and C3 as retained concepts, selected C1 for the first preview, and approved the proposed Remotion runtime, templated composition mode, and restrained still-image motion. Approval is limited to the idea/proposal configuration; downstream script, scene-plan, assets, edit, and compose gates remain subject to their own checkpoints."
       },
       "metadata": {
         "project_id": "amazon-B00002NCJI",
@@ -378,10 +378,14 @@
             }
           ],
           "selected": "remotion",
-          "reason": "Recommended runtime, pending user approval and a real native render validation.",
+          "reason": "User explicitly approved Remotion as the native render runtime for this preview.",
           "user_visible": true,
-          "user_approved": false,
-          "confidence": 0.82
+          "user_approved": true,
+          "confidence": 0.82,
+          "user_approval_scope": {
+            "approved_by_user": true,
+            "approved_at": "2026-11-21"
+          }
         },
         {
           "decision_id": "d-003",
@@ -403,10 +407,14 @@
             }
           ],
           "selected": "templated",
-          "reason": "Recommended for the constrained smoke-preview deliverable; pending user approval.",
+          "reason": "User explicitly approved templated composition for this preview.",
           "user_visible": true,
-          "user_approved": false,
-          "confidence": 0.84
+          "user_approved": true,
+          "confidence": 0.84,
+          "user_approval_scope": {
+            "approved_by_user": true,
+            "approved_at": "2026-11-21"
+          }
         },
         {
           "decision_id": "d-004",
@@ -478,22 +486,27 @@
             }
           ],
           "selected": "restrained_still_motion",
-          "reason": "The preview should prove native composition and image handling without introducing generated assets.",
+          "reason": "User explicitly approved restrained pan/zoom motion on existing product stills.",
           "user_visible": true,
-          "user_approved": false,
-          "confidence": 0.9
+          "user_approved": true,
+          "confidence": 0.9,
+          "user_approval_scope": {
+            "approved_by_user": true,
+            "approved_at": "2026-11-21"
+          }
         }
       ]
     }
   },
   "review": {
-    "status": "partially_approved",
+    "status": "approved",
     "findings": [
       "Three distinct concepts are grounded in the source facts and existing project materials.",
       "The source project has product stills; the mood-video prompts are not confirmed generated clips.",
       "No TTS, music, paid APIs, new assets, edit decisions, or render have been invoked.",
       "Native Remotion rendering remains unverified; only dependency availability has been checked.",
-      "User explicitly approved C1, C2, and C3 as retained concepts and selected C1 for the first preview; runtime, composition-mode, and motion decisions remain pending."
+      "User explicitly approved C1, C2, and C3 as retained concepts and selected C1 for the first preview; runtime, composition-mode, and motion decisions remain pending.",
+      "User approved all three creative concepts, selected C1 as the first preview, and approved Remotion, templated composition, and restrained motion."
     ]
   },
   "cost_snapshot": {
@@ -506,6 +519,7 @@
     "source_ref": "main",
     "source_project": "projects/B00002NCJI",
     "destination_repository": "Swar-K/video-creation-OpenMontage",
-    "checkpoint_note": "Concept selection is approved (C1, C2, C3 retained; C1 first preview). Keep the idea checkpoint awaiting human approval until remaining idea-stage decisions are resolved; do not proceed to script, scene-plan, assets, edit, or compose yet."
-  }
+    "checkpoint_note": "Idea checkpoint approved by user. Downstream script, scene-plan, assets, edit, and compose stages retain their own required checkpoints; no edit decisions or render are authorized by this approval alone."
+  },
+  "approved_at": "2026-11-21"
 }

@@ -495,7 +495,7 @@ jobs:
             --projects-dir "$RUNNER_TEMP/openmontage-projects" \
             --media-mode copy
           PROJECT="$RUNNER_TEMP/openmontage-projects/amazon-${{ env.AMAZON_PROJECT_ID }}-native-preview"
-          APPROVED="projects/$AMAZON_PROJECT_ID"
+          APPROVED="projects/amazon-$AMAZON_PROJECT_ID"
           for name in scene_plan.json asset_manifest.json edit_decisions.json proposal_packet.json; do
             test -s "$APPROVED/artifacts/$name"
             cp "$APPROVED/artifacts/$name" "$PROJECT/artifacts/$name"

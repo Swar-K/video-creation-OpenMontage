@@ -662,7 +662,7 @@ jobs:
           assert v.get("codec_name") == "h264", v
           assert (v.get("width"), v.get("height")) == (1920, 1080), v
           duration = float(data["format"]["duration"])
-          project = Path(sys.argv[1]).parent
+          project = Path(sys.argv[1]).parent.parent
           decisions = json.loads((project / "artifacts/edit_decisions.json").read_text(encoding="utf-8"))
           expected = float(decisions["metadata"]["duration_seconds"])
           fps = int(decisions["metadata"].get("fps", 30))

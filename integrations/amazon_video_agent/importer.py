@@ -139,24 +139,29 @@ def import_project(
 
     scene_plan = []
     scene_to_section = {}
-    for index, section in enumerate(script_sections):
-        visual = source_scenes[index % len(source_scenes)]
-        scene_id = f"section-{section['id']}"
-        scene_to_section[visual["id"]] = scene_id
-        scene_to_section[visual["ref"]] = scene_id
+    for index, visual in enumerate(source_scenes):
+        section = script_sections[min(
+            len(script_sections) - 1,
+            round(index * (len(script_sections) - 1) / max(1, len(source_scenes) - 1)),
+        )]
+        scene_id = visual["id"]
+        linked_section = f"section-{section['id']}"
+        scene_to_section[scene_id] = linked_section
+        scene_to_section[visual["ref"]] = linked_section
+        ai_clip = source / "assets" / f"ai_{scene_id}.mp4"
         scene_plan.append({
             "id": scene_id,
             "type": "broll" if visual["type"].lower() == "mood" else "generated",
-            "description": f"Narration: {section['text']} Visual direction: {visual['prompt']}",
-            "start_seconds": section["start_seconds"],
-            "end_seconds": section["end_seconds"],
+            "description": f"Imported Amazon scene prompt: {visual['prompt']}",
+            "start_seconds": round(total_duration * index / len(source_scenes), 3),
+            "end_seconds": round(total_duration * (index + 1) / len(source_scenes), 3),
             "script_section_id": section["id"],
             "framing": "Reframe deliberately for each approved aspect ratio; keep product details and text in safe areas.",
             "movement": "Retain source clip movement or apply restrained motion to still imagery.",
-            "shot_intent": f"Support the {section['label']} narration beat.",
-            "information_role": section["label"],
+            "shot_intent": "Provide the visual beat described in the original Amazon scene prompt.",
+            "information_role": "Source scene prompt; confirm exact narration alignment during review.",
             "required_assets": [{
-                "type": "video" if (source / "assets" / f"ai_{visual['id']}.mp4").is_file() else "image",
+                "type": "video" if ai_clip.is_file() else "image",
                 "description": visual["ref"] if visual["ref"].lower() != "none" else visual["prompt"],
                 "source": "provided" if visual["ref"].lower() != "none" else "generate",
             }],
@@ -194,7 +199,8 @@ def import_project(
         media_type = MEDIA_TYPES.get(media.suffix.lower())
         if not media.is_file() or not media_type:
             continue
-        target = media_target / media.name
+        media_folder = "images" if media_type == "image" else "video" if media_type == "video" else "audio"
+        target = media_target / media_folder / media.name
         target.parent.mkdir(parents=True, exist_ok=True)
         if target.exists() or target.is_symlink():
             raise FileExistsError(f"Asset target already exists: {target}")
@@ -206,7 +212,13 @@ def import_project(
             "id": re.sub(r"[^A-Za-z0-9_-]+", "-", media.stem).strip("-").lower(),
             "type": media_type, "path": target.relative_to(project_dir).as_posix(),
             "source_tool": "amazon_video_agent_import",
-            "scene_id": scene_to_section.get(media.name, "section-" + script_sections[0]["id"]),
+            "scene_id": scene_to_section.get(
+                media.name,
+                scene_to_section.get(
+                    re.sub(r"^ai_(s\d+)\.mp4$", r"\1", media.name),
+                    "section-" + script_sections[0]["id"],
+                ),
+            ),
             "format": media.suffix.lower().lstrip("."),
             "subtype": "product_source" if media.name.startswith("product_image_") else "imported_media",
             "generation_summary": "Imported from the Amazon Video Agent project; original file retained.",

@@ -78,8 +78,20 @@ jobs:
           manifest = json.loads((artifacts / "asset_manifest.json").read_text(encoding="utf-8"))
           assert scene_plan["scenes"], "Scene plan is empty"
           assert script["sections"], "Script sections are empty"
+          sections = {item["id"]: item for item in script["sections"]}
+          for scene in scene_plan["scenes"]:
+              section_id = scene.get("script_section_id")
+              assert section_id in sections, f"{scene['id']} references unknown script section {section_id!r}"
+              anchor = sections[section_id]["start_seconds"]
+              assert abs(scene["start_seconds"] - anchor) <= 0.002, (
+                  f"{scene['id']} does not start at its narration anchor"
+              )
+              duration = scene["end_seconds"] - scene["start_seconds"]
+              assert 0 < duration <= 5.01, (
+                  f"{scene['id']} should remain a short ~5-second source clip, got {duration:.3f}s"
+              )
           assert not (artifacts / "edit_decisions.json").exists(), "Importer must not invent edit decisions"
-          print(f"Scenes: {len(scene_plan['scenes'])}")
+          print(f"Scenes: {len(scene_plan['scenes'])}; all anchored to script sections and kept to ~5 seconds")
           print(f"Script sections: {len(script['sections'])}")
           print(f"Manifest assets: {len(manifest['assets'])}")
           print("Approval boundary check: no edit_decisions artifact was created")

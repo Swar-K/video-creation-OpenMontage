@@ -200,6 +200,22 @@
         "approved_at": "2026-11-21",
         "scope": "The script checkpoint only. Scene plan, assets, edit, and compose retain their separate gates."
       }
+    },
+    {
+      "decision_id": "d-008",
+      "stage": "scene_plan",
+      "category": "scene_plan_approval",
+      "subject": "Five-scene 15-second C1 silent visual-only scene plan",
+      "selected": "approved_as_presented",
+      "reason": "User explicitly approved the complete scene plan. Approval covers the five timed scenes, existing still-image references, restrained motion, and exact approved-script overlays.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 1,
+      "user_approval_scope": {
+        "approved_by_user": true,
+        "approved_at": "2026-11-21",
+        "scope": "Scene-plan checkpoint only. Assets, edit, and compose remain separately gated."
+      }
     }
   ]
 }

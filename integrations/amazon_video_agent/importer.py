@@ -231,7 +231,7 @@ def import_project(
                 media.name,
                 scene_to_section.get(
                     re.sub(r"^ai_(s\d+)\.mp4$", r"\1", media.name),
-                    "section-" + script_sections[0]["id"],
+                    "unassigned",
                 ),
             ),
             "format": media.suffix.lower().lstrip("."),

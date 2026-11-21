@@ -105,7 +105,7 @@
             "why_this_provider": "The source repo already contains the project facts, script, scene prompts, and product images."
           }
         ],
-        "approach": "Use the imported facts and existing media as the source of truth. Keep the proposal and concept approval pending until the user selects or revises a direction."
+        "approach": "Use the user-approved proposal and creative direction as the governing brief. Preserve the separate human approval checkpoints for script, scene plan, and assets."
       },
       {
         "stage": "script_and_scene_plan",
@@ -244,7 +244,7 @@
     "governance": {
       "no_edit_decisions": true,
       "no_render_before_assets_approval": true,
-      "approval_status": "awaiting_human"
+      "approval_status": "approved"
     },
     "source_media_note": "The source project contains product stills. Mood clips described in scenes.md are prompts, not confirmed generated video files."
   }

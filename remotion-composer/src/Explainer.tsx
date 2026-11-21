@@ -378,7 +378,12 @@ const ImageScene: React.FC<{ src: string; animation?: string }> = ({
     extrapolateRight: "clamp",
   });
 
-  if (anim === "zoom-in") {
+  if (anim === "subtle-zoom-in") {
+    scale = 1 + progress * 0.03;
+  } else if (anim === "subtle-pan-left") {
+    translateX = interpolate(progress, [0, 1], [10, -10]);
+    scale = 1.02;
+  } else if (anim === "zoom-in") {
     scale = 1 + progress * 0.18;
   } else if (anim === "zoom-out") {
     scale = 1.18 - progress * 0.18;

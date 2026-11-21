@@ -68,10 +68,14 @@
         }
       ],
       "selected": "remotion",
-      "reason": "Recommended runtime, pending user approval and a real native render validation.",
+      "reason": "User explicitly approved Remotion as the native render runtime for this preview.",
       "user_visible": true,
-      "user_approved": false,
-      "confidence": 0.82
+      "user_approved": true,
+      "confidence": 0.82,
+      "user_approval_scope": {
+        "approved_by_user": true,
+        "approved_at": "2026-11-21"
+      }
     },
     {
       "decision_id": "d-003",
@@ -93,10 +97,14 @@
         }
       ],
       "selected": "templated",
-      "reason": "Recommended for the constrained smoke-preview deliverable; pending user approval.",
+      "reason": "User explicitly approved templated composition for this preview.",
       "user_visible": true,
-      "user_approved": false,
-      "confidence": 0.84
+      "user_approved": true,
+      "confidence": 0.84,
+      "user_approval_scope": {
+        "approved_by_user": true,
+        "approved_at": "2026-11-21"
+      }
     },
     {
       "decision_id": "d-004",
@@ -168,10 +176,14 @@
         }
       ],
       "selected": "restrained_still_motion",
-      "reason": "The preview should prove native composition and image handling without introducing generated assets.",
+      "reason": "User explicitly approved restrained pan/zoom motion on existing product stills.",
       "user_visible": true,
-      "user_approved": false,
-      "confidence": 0.9
+      "user_approved": true,
+      "confidence": 0.9,
+      "user_approval_scope": {
+        "approved_by_user": true,
+        "approved_at": "2026-11-21"
+      }
     }
   ]
 }

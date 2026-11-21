@@ -19,6 +19,11 @@ on:
         required: true
         default: "B00002NCJI"
         type: string
+      render_native_preview:
+        description: "Render only when this project's OpenMontage approvals and edit decisions are committed under projects/amazon-<project_id>"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -440,8 +445,8 @@ jobs:
           retention-days: 7
 
   native-remotion-preview:
-    if: github.event_name == 'pull_request' || github.event.inputs.project_id == '' || github.event.inputs.project_id == 'B00002NCJI'
-    name: Render approved C1 preview through native OpenMontage Remotion (approved sample only)
+    if: github.event_name == 'workflow_dispatch' && inputs.render_native_preview
+    name: Render approved native OpenMontage Remotion preview for selected project
     needs:
       - runtime-preflight
       - import-and-validate
@@ -496,32 +501,78 @@ jobs:
             --media-mode copy
           PROJECT="$RUNNER_TEMP/openmontage-projects/amazon-${{ env.AMAZON_PROJECT_ID }}-native-preview"
           APPROVED="projects/amazon-$AMAZON_PROJECT_ID"
+          python - "$APPROVED" <<'PY'
+          import sys
+          from pathlib import Path
+          approved = Path(sys.argv[1])
+          artifact_names = ("scene_plan.json", "asset_manifest.json", "edit_decisions.json", "proposal_packet.json")
+          checkpoint_names = (
+              "checkpoint_idea.json", "checkpoint_script.json",
+              "checkpoint_scene_plan.json", "checkpoint_assets.json",
+              "checkpoint_edit.json", "decision_log.json",
+          )
+          required = [approved / "artifacts" / name for name in artifact_names]
+          required += [approved / name for name in checkpoint_names]
+          missing = [str(path) for path in required if not path.is_file() or path.stat().st_size == 0]
+          if missing:
+              print("Native render was requested, but this project is not ready. Missing/empty project-specific approval files:")
+              for path in missing:
+                  print(f" - {path}")
+              raise SystemExit(2)
+          print(f"Found all {len(required)} project-specific approval and render files for {approved.name}.")
+          PY
           for name in scene_plan.json asset_manifest.json edit_decisions.json proposal_packet.json; do
-            test -s "$APPROVED/artifacts/$name"
             cp "$APPROVED/artifacts/$name" "$PROJECT/artifacts/$name"
           done
           for name in checkpoint_idea.json checkpoint_script.json checkpoint_scene_plan.json checkpoint_assets.json checkpoint_edit.json decision_log.json; do
-            test -s "$APPROVED/$name"
             cp "$APPROVED/$name" "$PROJECT/$name"
           done
           python - "$PROJECT" <<'PY'
           import json, sys
           from pathlib import Path
           project = Path(sys.argv[1])
-          for name in ("checkpoint_idea.json", "checkpoint_script.json", "checkpoint_scene_plan.json", "checkpoint_assets.json", "checkpoint_edit.json"):
+          checkpoint_names = (
+              "checkpoint_idea.json", "checkpoint_script.json",
+              "checkpoint_scene_plan.json", "checkpoint_assets.json",
+              "checkpoint_edit.json",
+          )
+          for name in checkpoint_names:
               data = json.loads((project / name).read_text(encoding="utf-8"))
               assert data.get("status") == "completed", f"{name} is not completed"
               if data.get("human_approval_required", False):
                   assert data.get("human_approved") is True, f"{name} lacks human approval"
           decisions = json.loads((project / "artifacts/edit_decisions.json").read_text(encoding="utf-8"))
-          assert decisions["render_runtime"] == "remotion"
-          assert decisions["renderer_family"] == "product-reveal"
-          assert decisions["composition_mode"] == "templated"
-          assert len(decisions["cuts"]) == 5 and len(decisions["overlays"]) == 5
-          assert decisions["tailPaddingSeconds"] == 0
-          for filename in ("product_image_11.jpg", "product_image_21.jpg"):
-              assert (project / "assets/images" / filename).is_file(), f"Missing imported image: {filename}"
-          print("Approved checkpoints, source stills, edit decisions, and Remotion routing verified.")
+          proposal = json.loads((project / "artifacts/proposal_packet.json").read_text(encoding="utf-8"))
+          scene_plan = json.loads((project / "artifacts/scene_plan.json").read_text(encoding="utf-8"))
+          assets_checkpoint = json.loads((project / "checkpoint_assets.json").read_text(encoding="utf-8"))
+          assert decisions.get("render_runtime") == "remotion", "Edit decisions must select Remotion"
+          assert decisions.get("composition_mode") == "templated", "Only the templated Remotion path is currently supported here"
+          assert decisions.get("cuts"), "Edit decisions contain no cuts"
+          assert decisions.get("overlays") is not None, "Edit decisions must define overlays (an empty list is allowed)"
+          duration = float(decisions.get("metadata", {}).get("duration_seconds", 0))
+          assert duration > 0, "Edit decisions must declare metadata.duration_seconds"
+          assert proposal.get("production_plan", {}).get("render_runtime") == "remotion"
+          assert proposal.get("approval", {}).get("status") == "approved", "Proposal is not approved"
+          assert scene_plan.get("scenes"), "Approved scene plan is empty"
+          for item in decisions["cuts"]:
+              assert 0 <= float(item["in_seconds"]) < float(item["out_seconds"]) <= duration + 0.05, (
+                  f"Cut {item.get('id')} has invalid timing for {duration}s output"
+              )
+          approved_assets = assets_checkpoint.get("artifacts", {}).get("asset_manifest", {}).get("assets", [])
+          asset_paths = {item.get("asset_id"): item.get("path") for item in approved_assets}
+          assert asset_paths, "Assets checkpoint has no approved asset mappings"
+          for cut in decisions["cuts"]:
+              source_id = cut.get("source")
+              assert source_id in asset_paths, f"Cut {cut.get('id')} references unapproved asset {source_id!r}"
+              asset_path = project / asset_paths[source_id]
+              assert asset_path.is_file(), f"Approved source asset is missing: {asset_path}"
+          fps = int(decisions.get("metadata", {}).get("fps", 30))
+          assert fps > 0, "Edit decisions fps must be positive"
+          print(
+              f"Project-specific approvals, {len(decisions['cuts'])} cuts, "
+              f"{len(decisions['overlays'])} overlays, {len(approved_assets)} approved assets, "
+              f"{duration:.2f}s at {fps} fps, and Remotion routing verified."
+          )
           PY
 
       - name: Validate artifacts and run native Remotion composition
@@ -549,7 +600,8 @@ jobs:
           proposal = load("proposal_packet.json")
           validate_artifact("asset_manifest", manifest)
           validate_artifact("edit_decisions", edit)
-          assert scene_plan["metadata"]["total_duration_seconds"] == 15
+          duration = float(edit["metadata"]["duration_seconds"])
+          assert duration > 0
           assert proposal["production_plan"]["render_runtime"] == edit["render_runtime"]
           result = VideoCompose().execute({
               "operation": "render",
@@ -610,7 +662,14 @@ jobs:
           assert v.get("codec_name") == "h264", v
           assert (v.get("width"), v.get("height")) == (1920, 1080), v
           duration = float(data["format"]["duration"])
-          assert 14.95 <= duration <= 15.05, f"Expected 15 seconds, got {duration}"
+          project = Path(sys.argv[1]).parent
+          decisions = json.loads((project / "artifacts/edit_decisions.json").read_text(encoding="utf-8"))
+          expected = float(decisions["metadata"]["duration_seconds"])
+          fps = int(decisions["metadata"].get("fps", 30))
+          tolerance = max(0.05, 1.0 / fps)
+          assert abs(duration - expected) <= tolerance, (
+              f"Expected {expected:.3f}s (±{tolerance:.3f}s), got {duration:.3f}s"
+          )
           print(f"Native Remotion preview passed: H.264 {v['width']}x{v['height']}, {duration:.2f}s, silent.")
           print("Full-file decode passed.")
           PY

@@ -547,6 +547,21 @@ jobs:
           print(json.dumps(report, indent=2))
           PY
 
+      - name: Strip audio stream from silent preview
+        working-directory: openmontage
+        run: |
+          set -euo pipefail
+          PROJECT="$RUNNER_TEMP/openmontage-projects/amazon-B00002NCJI-native-preview"
+          VIDEO="$PROJECT/renders/native-remotion-preview.mp4"
+          SILENT="$PROJECT/renders/native-remotion-preview.silent.mp4"
+          test -s "$VIDEO"
+          # Remotion may mux an AAC track even when the composition has no audio.
+          # Copy the rendered video bitstream unchanged and explicitly omit audio.
+          ffmpeg -hide_banner -v error -y -i "$VIDEO" -map 0:v:0 -c:v copy -an -movflags +faststart "$SILENT"
+          test -s "$SILENT"
+          mv "$SILENT" "$VIDEO"
+          echo "Removed all audio streams without re-encoding the Remotion video."
+
       - name: Validate native preview video
         working-directory: openmontage
         run: |

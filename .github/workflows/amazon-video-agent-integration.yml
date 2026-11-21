@@ -79,6 +79,7 @@ jobs:
           assert scene_plan["scenes"], "Scene plan is empty"
           assert script["sections"], "Script sections are empty"
           sections = {item["id"]: item for item in script["sections"]}
+          scene_ids = {scene["id"] for scene in scene_plan["scenes"]}
           for scene in scene_plan["scenes"]:
               section_id = scene.get("script_section_id")
               assert section_id in sections, f"{scene['id']} references unknown script section {section_id!r}"
@@ -89,6 +90,10 @@ jobs:
               duration = scene["end_seconds"] - scene["start_seconds"]
               assert 0 < duration <= 5.01, (
                   f"{scene['id']} should remain a short ~5-second source clip, got {duration:.3f}s"
+              )
+          for asset in manifest["assets"]:
+              assert asset["scene_id"] == "unassigned" or asset["scene_id"] in scene_ids, (
+                  f"{asset['id']} has invalid scene mapping: {asset['scene_id']}"
               )
           assert not (artifacts / "edit_decisions.json").exists(), "Importer must not invent edit decisions"
           print(f"Scenes: {len(scene_plan['scenes'])}; all anchored to script sections and kept to ~5 seconds")

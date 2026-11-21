@@ -85,6 +85,61 @@ jobs:
           print("Approval boundary check: no edit_decisions artifact was created")
           PY
 
+      - name: Verify imported media files and style playbook
+        working-directory: openmontage
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from styles.playbook_loader import load_playbook
+
+          project = Path("${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-ci").resolve()
+          manifest_path = project / "artifacts" / "asset_manifest.json"
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          assets = manifest.get("assets", [])
+          assert assets, "Asset manifest contains no assets"
+
+          checked = []
+          failures = []
+          for asset in assets:
+              relative = Path(asset["path"])
+              if relative.is_absolute():
+                  failures.append(f"{asset['id']}: absolute path is not allowed: {relative}")
+                  continue
+              candidate = (project / relative).resolve()
+              if not candidate.is_relative_to(project):
+                  failures.append(f"{asset['id']}: path escapes project directory: {relative}")
+                  continue
+              if not candidate.is_file():
+                  failures.append(f"{asset['id']}: missing file: {relative}")
+                  continue
+              try:
+                  with candidate.open("rb") as handle:
+                      sample = handle.read(1)
+                  if candidate.stat().st_size == 0 or not sample:
+                      failures.append(f"{asset['id']}: file is empty: {relative}")
+                      continue
+              except OSError as exc:
+                  failures.append(f"{asset['id']}: cannot read {relative}: {exc}")
+                  continue
+              checked.append((asset["id"], relative.as_posix(), candidate.stat().st_size))
+
+          print(f"Manifest assets: {len(assets)}")
+          print(f"Readable local files: {len(checked)}")
+          for asset_id, relative, size in checked:
+              print(f"OK {asset_id}: {relative} ({size} bytes)")
+          if failures:
+              print("Media integrity failures:")
+              for failure in failures:
+                  print(f" - {failure}")
+              raise SystemExit(1)
+
+          playbook = load_playbook("clean-professional")
+          assert playbook.get("identity", {}).get("name"), "Playbook has no identity.name"
+          print("Style playbook: clean-professional loaded and schema-validated")
+          print("Media integrity check passed")
+          PY
+
       - name: Upload imported artifact bundle
         uses: actions/upload-artifact@v4
         with:

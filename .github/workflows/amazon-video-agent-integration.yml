@@ -8,6 +8,9 @@ on:
       - "integrations/amazon_video_agent/**"
       - "scripts/import_amazon_video_agent.py"
       - "tests/integrations/**"
+      - "projects/amazon-B00002NCJI/**"
+      - "schemas/artifacts/edit_decisions.schema.json"
+      - "remotion-composer/src/Explainer.tsx"
       - ".github/workflows/amazon-video-agent-integration.yml"
   workflow_dispatch:
 
@@ -19,6 +22,130 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  runtime-preflight:
+    name: Check native render runtime availability
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout OpenMontage
+        uses: actions/checkout@v4
+        with:
+          path: openmontage
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.4"
+          cache: npm
+          cache-dependency-path: openmontage/remotion-composer/package-lock.json
+
+      - name: Install Remotion composer dependencies
+        working-directory: openmontage/remotion-composer
+        run: npm ci
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Probe OpenMontage render engines without rendering
+        working-directory: openmontage
+        shell: bash
+        run: |
+          set -uo pipefail
+          REPORT="$RUNNER_TEMP/render-runtime-preflight.txt"
+          NODE_MAJOR="$(node -p 'Number(process.versions.node.split(".")[0])')"
+          FFMPEG_OK=false
+          REMOTION_OK=false
+          HYPERFRAMES_DOCTOR_STATUS="not_run"
+          HYPERFRAMES_DOCTOR_EXIT="not_run"
+          HYPERFRAMES_DOCTOR_OK="unknown"
+
+          command -v ffmpeg >/dev/null 2>&1 && FFMPEG_OK=true
+          if command -v npx >/dev/null 2>&1 \
+            && test -f remotion-composer/package.json \
+            && test -d remotion-composer/node_modules; then
+            REMOTION_OK=true
+          fi
+
+          echo "Node.js: $(node --version) (major $NODE_MAJOR)"
+          echo "FFmpeg available: $FFMPEG_OK"
+          echo "Remotion available (npx + composer package + node_modules): $REMOTION_OK"
+
+          if [ "$NODE_MAJOR" -ge 22 ] && [ "$FFMPEG_OK" = true ] \
+            && command -v npx >/dev/null 2>&1; then
+            set +e
+            timeout 30s npx --yes hyperframes doctor --json > "$RUNNER_TEMP/hyperframes-doctor.json" 2>&1
+            HYPERFRAMES_DOCTOR_EXIT="$?"
+            set -e
+            if [ -s "$RUNNER_TEMP/hyperframes-doctor.json" ]; then
+              HYPERFRAMES_DOCTOR_OK="$(python - "$RUNNER_TEMP/hyperframes-doctor.json" <<'PY'
+          import json
+          import sys
+          try:
+              with open(sys.argv[1], encoding="utf-8") as handle:
+                  report = json.load(handle)
+              print(str(report.get("ok", "unknown")).lower())
+          except (OSError, json.JSONDecodeError, AttributeError):
+              print("invalid")
+          PY
+          )"
+              if [ "$HYPERFRAMES_DOCTOR_OK" = "true" ]; then
+                HYPERFRAMES_DOCTOR_STATUS="passed"
+              elif [ "$HYPERFRAMES_DOCTOR_OK" = "false" ]; then
+                HYPERFRAMES_DOCTOR_STATUS="reported_issues"
+              else
+                HYPERFRAMES_DOCTOR_STATUS="unreadable_report"
+              fi
+            else
+              HYPERFRAMES_DOCTOR_STATUS="no_report"
+            fi
+            echo "HyperFrames doctor status: $HYPERFRAMES_DOCTOR_STATUS (exit $HYPERFRAMES_DOCTOR_EXIT; JSON ok=$HYPERFRAMES_DOCTOR_OK)"
+            if [ "$HYPERFRAMES_DOCTOR_STATUS" != "passed" ]; then
+              echo "HyperFrames doctor details:"
+              cat "$RUNNER_TEMP/hyperframes-doctor.json" || true
+            fi
+          else
+            echo "HyperFrames doctor not run: requires Node.js >=22, npx, and FFmpeg."
+          fi
+
+          {
+            echo "## Native render runtime preflight"
+            echo
+            echo "- Node.js: $(node --version)"
+            echo "- FFmpeg available: $FFMPEG_OK"
+            echo "- Remotion dependencies present: $REMOTION_OK"
+            echo "- HyperFrames doctor: $HYPERFRAMES_DOCTOR_STATUS"
+            echo "- HyperFrames doctor exit code: $HYPERFRAMES_DOCTOR_EXIT"
+            echo "- HyperFrames doctor JSON ok: $HYPERFRAMES_DOCTOR_OK"
+            echo
+            echo "A HyperFrames doctor status of reported_issues means its own JSON report has ok=false; inspect individual checks to distinguish required runtime blockers from optional integrations."
+            echo
+            echo "This job only checks runtime availability. It does not import project media, create edit decisions, write approval checkpoints, or render video."
+          } | tee "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+
+          {
+            echo "Node.js: $(node --version)"
+            echo "FFmpeg: $FFMPEG_OK"
+            echo "Remotion: $REMOTION_OK"
+            echo "HyperFrames doctor status: $HYPERFRAMES_DOCTOR_STATUS"
+            echo "HyperFrames doctor exit code: $HYPERFRAMES_DOCTOR_EXIT"
+            echo "HyperFrames doctor JSON ok: $HYPERFRAMES_DOCTOR_OK"
+          } >> "$REPORT"
+
+          mkdir -p "$RUNNER_TEMP/runtime-preflight"
+          cp "$REPORT" "$RUNNER_TEMP/runtime-preflight/"
+          if [ -f "$RUNNER_TEMP/hyperframes-doctor.json" ]; then
+            cp "$RUNNER_TEMP/hyperframes-doctor.json" "$RUNNER_TEMP/runtime-preflight/"
+          fi
+
+      - name: Upload runtime preflight report
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-render-runtime-preflight
+          path: ${{ runner.temp }}/runtime-preflight/*
+          if-no-files-found: error
+          retention-days: 7
+
   import-and-validate:
     name: Import sample project and validate artifacts
     runs-on: ubuntu-latest
@@ -78,8 +205,25 @@ jobs:
           manifest = json.loads((artifacts / "asset_manifest.json").read_text(encoding="utf-8"))
           assert scene_plan["scenes"], "Scene plan is empty"
           assert script["sections"], "Script sections are empty"
+          sections = {item["id"]: item for item in script["sections"]}
+          scene_ids = {scene["id"] for scene in scene_plan["scenes"]}
+          for scene in scene_plan["scenes"]:
+              section_id = scene.get("script_section_id")
+              assert section_id in sections, f"{scene['id']} references unknown script section {section_id!r}"
+              anchor = sections[section_id]["start_seconds"]
+              assert abs(scene["start_seconds"] - anchor) <= 0.002, (
+                  f"{scene['id']} does not start at its narration anchor"
+              )
+              duration = scene["end_seconds"] - scene["start_seconds"]
+              assert 0 < duration <= 5.01, (
+                  f"{scene['id']} should remain a short ~5-second source clip, got {duration:.3f}s"
+              )
+          for asset in manifest["assets"]:
+              assert asset["scene_id"] == "unassigned" or asset["scene_id"] in scene_ids, (
+                  f"{asset['id']} has invalid scene mapping: {asset['scene_id']}"
+              )
           assert not (artifacts / "edit_decisions.json").exists(), "Importer must not invent edit decisions"
-          print(f"Scenes: {len(scene_plan['scenes'])}")
+          print(f"Scenes: {len(scene_plan['scenes'])}; all anchored to script sections and kept to ~5 seconds")
           print(f"Script sections: {len(script['sections'])}")
           print(f"Manifest assets: {len(manifest['assets'])}")
           print("Approval boundary check: no edit_decisions artifact was created")
@@ -140,10 +284,317 @@ jobs:
           print("Media integrity check passed")
           PY
 
+      - name: Package complete imported project for human review
+        working-directory: openmontage
+        run: |
+          python - <<'PY'
+          import json
+          import zipfile
+          from pathlib import Path
+
+          project = Path("${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-ci").resolve()
+          source = Path("../amazon-video-agent/projects/B00002NCJI").resolve()
+          output = Path("${{ runner.temp }}/amazon-B00002NCJI-openmontage-review.zip")
+          required = [
+              project / "project.json",
+              project / "artifacts/brief.json",
+              project / "artifacts/script.json",
+              project / "artifacts/scene_plan.json",
+              project / "artifacts/asset_manifest.json",
+          ]
+          for path in required:
+              assert path.is_file(), f"Review package is missing {path}"
+
+          readme = """# OpenMontage imported project review package
+
+          This package contains the imported OpenMontage seed artifacts and copied source media for human review.
+
+          Contents:
+          - artifacts/: brief, script, scene plan, and asset manifest
+          - assets/: imported image, video, and audio files
+          - source/: original Amazon Video Agent facts.yaml, script.md, and scenes.md
+          - project.json: OpenMontage project identity and pipeline metadata
+
+          Approval boundary:
+          - This is an import/review package, not an approved edit.
+          - No edit_decisions.json is included or created.
+          - No native Remotion render is performed by this packaging step.
+          - Script, scene-plan, and assets checkpoints still require their own human approvals.
+          """
+          with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+              for path in required:
+                  archive.write(path, path.relative_to(project).as_posix())
+              for folder in ("artifacts", "assets"):
+                  root = project / folder
+                  for path in sorted(root.rglob("*")):
+                      if path.is_file() and not path.is_symlink():
+                          archive.write(path, path.relative_to(project).as_posix())
+              for name in ("facts.yaml", "script.md", "scenes.md"):
+                  path = source / name
+                  assert path.is_file(), f"Source review input missing: {path}"
+                  archive.write(path, f"source/{name}")
+              archive.writestr("REVIEW_README.md", readme)
+
+          with zipfile.ZipFile(output) as archive:
+              bad = archive.testzip()
+              assert bad is None, f"Review ZIP failed integrity check at {bad}"
+              names = archive.namelist()
+              assert "artifacts/script.json" in names
+              assert "artifacts/scene_plan.json" in names
+              assert any(name.startswith("assets/images/") for name in names)
+          print(f"Created review package: {output} ({output.stat().st_size} bytes)")
+          print(f"Packaged files: {len(names)}")
+          PY
+
+      - name: Upload complete imported project review package
+        uses: actions/upload-artifact@v4
+        with:
+          name: amazon-video-agent-project-review
+          path: ${{ runner.temp }}/amazon-B00002NCJI-openmontage-review.zip
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Install FFmpeg for render smoke test
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Render short imported-media smoke video
+        working-directory: openmontage
+        run: |
+          set -euo pipefail
+          PROJECT="${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-ci"
+          mkdir -p "$PROJECT/renders"
+          for image in product_image_11.jpg product_image_21.jpg product_image_31.jpg product_image_71.jpg; do
+            test -s "$PROJECT/assets/images/$image"
+          done
+          ffmpeg -hide_banner -y \
+            -loop 1 -framerate 24 -t 2 -i "$PROJECT/assets/images/product_image_11.jpg" \
+            -loop 1 -framerate 24 -t 2 -i "$PROJECT/assets/images/product_image_21.jpg" \
+            -loop 1 -framerate 24 -t 2 -i "$PROJECT/assets/images/product_image_31.jpg" \
+            -loop 1 -framerate 24 -t 2 -i "$PROJECT/assets/images/product_image_71.jpg" \
+            -filter_complex "[0:v]scale=640:360:force_original_aspect_ratio=decrease,pad=640:360:(ow-iw)/2:(oh-ih)/2,setsar=1[v0];[1:v]scale=640:360:force_original_aspect_ratio=decrease,pad=640:360:(ow-iw)/2:(oh-ih)/2,setsar=1[v1];[2:v]scale=640:360:force_original_aspect_ratio=decrease,pad=640:360:(ow-iw)/2:(oh-ih)/2,setsar=1[v2];[3:v]scale=640:360:force_original_aspect_ratio=decrease,pad=640:360:(ow-iw)/2:(oh-ih)/2,setsar=1[v3];[v0][v1][v2][v3]concat=n=4:v=1:a=0[outv]" \
+            -map "[outv]" -t 8 -r 24 -c:v libx264 -preset veryfast -crf 28 -pix_fmt yuv420p \
+            "$PROJECT/renders/import-smoke.mp4"
+          test -s "$PROJECT/renders/import-smoke.mp4"
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate -show_entries format=duration,size -of json "$PROJECT/renders/import-smoke.mp4" > "$PROJECT/renders/import-smoke.ffprobe.json"
+          ffmpeg -v error -i "$PROJECT/renders/import-smoke.mp4" -f null -
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          project = Path("${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-ci")
+          report = json.loads((project / "renders/import-smoke.ffprobe.json").read_text())
+          streams = report.get("streams", [])
+          assert streams, "Rendered smoke video has no video stream"
+          stream = streams[0]
+          assert stream.get("codec_name") == "h264", stream
+          assert (stream.get("width"), stream.get("height")) == (640, 360), stream
+          duration = float(report["format"]["duration"])
+          assert 7.5 <= duration <= 8.5, f"Unexpected duration: {duration}"
+          print(f"Render smoke test passed: H.264 {stream['width']}x{stream['height']}, {duration:.2f}s")
+          print("Full-file FFmpeg decode passed")
+          PY
+
+      - name: Upload rendered smoke video
+        uses: actions/upload-artifact@v4
+        with:
+          name: amazon-video-agent-render-smoke
+          path: |
+            ${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-ci/renders/import-smoke.mp4
+            ${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-ci/renders/import-smoke.ffprobe.json
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Upload imported artifact bundle
         uses: actions/upload-artifact@v4
         with:
           name: amazon-video-agent-import-test
           path: ${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-ci/artifacts/*.json
+          if-no-files-found: error
+          retention-days: 7
+
+  native-remotion-preview:
+    name: Render approved C1 preview through native OpenMontage Remotion
+    needs:
+      - runtime-preflight
+      - import-and-validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout OpenMontage
+        uses: actions/checkout@v4
+        with:
+          path: openmontage
+
+      - name: Checkout Amazon Video Agent source project
+        uses: actions/checkout@v4
+        with:
+          repository: Swar-K/amazon-video-agent
+          ref: main
+          path: amazon-video-agent
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.4"
+          cache: npm
+          cache-dependency-path: openmontage/remotion-composer/package-lock.json
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r openmontage/requirements.txt
+
+      - name: Install Remotion dependencies
+        working-directory: openmontage/remotion-composer
+        run: npm ci
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Import source assets and overlay approved OpenMontage decisions
+        working-directory: openmontage
+        run: |
+          set -euo pipefail
+          python scripts/import_amazon_video_agent.py \
+            --amazon-project ../amazon-video-agent/projects/B00002NCJI \
+            --project-id amazon-B00002NCJI-native-preview \
+            --projects-dir "$RUNNER_TEMP/openmontage-projects" \
+            --media-mode copy
+          PROJECT="$RUNNER_TEMP/openmontage-projects/amazon-B00002NCJI-native-preview"
+          APPROVED="projects/amazon-B00002NCJI"
+          for name in scene_plan.json asset_manifest.json edit_decisions.json proposal_packet.json; do
+            test -s "$APPROVED/artifacts/$name"
+            cp "$APPROVED/artifacts/$name" "$PROJECT/artifacts/$name"
+          done
+          for name in checkpoint_idea.json checkpoint_script.json checkpoint_scene_plan.json checkpoint_assets.json checkpoint_edit.json decision_log.json; do
+            test -s "$APPROVED/$name"
+            cp "$APPROVED/$name" "$PROJECT/$name"
+          done
+          python - "$PROJECT" <<'PY'
+          import json, sys
+          from pathlib import Path
+          project = Path(sys.argv[1])
+          for name in ("checkpoint_idea.json", "checkpoint_script.json", "checkpoint_scene_plan.json", "checkpoint_assets.json", "checkpoint_edit.json"):
+              data = json.loads((project / name).read_text(encoding="utf-8"))
+              assert data.get("status") == "completed", f"{name} is not completed"
+              if data.get("human_approval_required", False):
+                  assert data.get("human_approved") is True, f"{name} lacks human approval"
+          decisions = json.loads((project / "artifacts/edit_decisions.json").read_text(encoding="utf-8"))
+          assert decisions["render_runtime"] == "remotion"
+          assert decisions["renderer_family"] == "product-reveal"
+          assert decisions["composition_mode"] == "templated"
+          assert len(decisions["cuts"]) == 5 and len(decisions["overlays"]) == 5
+          assert decisions["tailPaddingSeconds"] == 0
+          for filename in ("product_image_11.jpg", "product_image_21.jpg"):
+              assert (project / "assets/images" / filename).is_file(), f"Missing imported image: {filename}"
+          print("Approved checkpoints, source stills, edit decisions, and Remotion routing verified.")
+          PY
+
+      - name: Validate artifacts and run native Remotion composition
+        working-directory: openmontage
+        run: |
+          set -euo pipefail
+          PROJECT="$RUNNER_TEMP/openmontage-projects/amazon-B00002NCJI-native-preview"
+          python - "$PROJECT" "$GITHUB_WORKSPACE/openmontage" <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          project = Path(sys.argv[1]).resolve()
+          repo = Path(sys.argv[2]).resolve()
+          os.chdir(project)
+          sys.path.insert(0, str(repo))
+          from jsonschema import validate
+          from tools.video.video_compose import VideoCompose
+          from schemas.artifacts import validate_artifact
+
+          def load(name):
+              return json.loads((project / "artifacts" / name).read_text(encoding="utf-8"))
+
+          manifest = load("asset_manifest.json")
+          edit = load("edit_decisions.json")
+          scene_plan = load("scene_plan.json")
+          proposal = load("proposal_packet.json")
+          validate_artifact("asset_manifest", manifest)
+          validate_artifact("edit_decisions", edit)
+          assert scene_plan["metadata"]["total_duration_seconds"] == 15
+          assert proposal["production_plan"]["render_runtime"] == edit["render_runtime"]
+          result = VideoCompose().execute({
+              "operation": "render",
+              "edit_decisions": edit,
+              "asset_manifest": manifest,
+              "proposal_packet": proposal,
+              "scene_plan": scene_plan["scenes"],
+              "output_path": str(project / "renders/native-remotion-preview.mp4"),
+              "remotion_timeout_ms": 180000,
+              "remotion_concurrency": 2
+          })
+          if not result.success:
+              raise RuntimeError(result.error or "Native Remotion render failed")
+          report = {
+              "status": "rendered",
+              "runtime": "remotion",
+              "output": str(project / "renders/native-remotion-preview.mp4"),
+              "duration_seconds": result.duration_seconds,
+              "renderer_data": result.data or {}
+          }
+          (project / "renders/native-remotion-render-report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+          print(json.dumps(report, indent=2))
+          PY
+
+      - name: Strip audio stream from silent preview
+        working-directory: openmontage
+        run: |
+          set -euo pipefail
+          PROJECT="$RUNNER_TEMP/openmontage-projects/amazon-B00002NCJI-native-preview"
+          VIDEO="$PROJECT/renders/native-remotion-preview.mp4"
+          SILENT="$PROJECT/renders/native-remotion-preview.silent.mp4"
+          test -s "$VIDEO"
+          # Remotion may mux an AAC track even when the composition has no audio.
+          # Copy the rendered video bitstream unchanged and explicitly omit audio.
+          ffmpeg -hide_banner -v error -y -i "$VIDEO" -map 0:v:0 -c:v copy -an -movflags +faststart "$SILENT"
+          test -s "$SILENT"
+          mv "$SILENT" "$VIDEO"
+          echo "Removed all audio streams without re-encoding the Remotion video."
+
+      - name: Validate native preview video
+        working-directory: openmontage
+        run: |
+          set -euo pipefail
+          PROJECT="$RUNNER_TEMP/openmontage-projects/amazon-B00002NCJI-native-preview"
+          VIDEO="$PROJECT/renders/native-remotion-preview.mp4"
+          test -s "$VIDEO"
+          ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_frame_rate -show_entries format=duration,size -of json "$VIDEO" > "$PROJECT/renders/native-remotion-preview.ffprobe.json"
+          ffmpeg -v error -i "$VIDEO" -f null -
+          python - "$PROJECT/renders/native-remotion-preview.ffprobe.json" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          streams = data.get("streams", [])
+          video = [s for s in streams if s.get("codec_type") == "video"]
+          audio = [s for s in streams if s.get("codec_type") == "audio"]
+          assert len(video) == 1, streams
+          assert not audio, f"Preview must be silent, found audio streams: {audio}"
+          v = video[0]
+          assert v.get("codec_name") == "h264", v
+          assert (v.get("width"), v.get("height")) == (1920, 1080), v
+          duration = float(data["format"]["duration"])
+          assert 14.95 <= duration <= 15.05, f"Expected 15 seconds, got {duration}"
+          print(f"Native Remotion preview passed: H.264 {v['width']}x{v['height']}, {duration:.2f}s, silent.")
+          print("Full-file decode passed.")
+          PY
+
+      - name: Upload native Remotion preview and report
+        uses: actions/upload-artifact@v4
+        with:
+          name: amazon-video-agent-native-remotion-preview
+          path: |
+            ${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-native-preview/renders/native-remotion-preview.mp4
+            ${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-native-preview/renders/native-remotion-preview.ffprobe.json
+            ${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-native-preview/renders/native-remotion-render-report.json
           if-no-files-found: error
           retention-days: 7

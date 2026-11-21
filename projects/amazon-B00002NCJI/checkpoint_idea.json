@@ -1,0 +1,501 @@
+{
+  "version": "1.0",
+  "project_id": "amazon-B00002NCJI",
+  "pipeline_type": "hybrid",
+  "stage": "idea",
+  "status": "awaiting_human",
+  "timestamp": "2026-11-21T12:14:14.606Z",
+  "style_playbook": "clean-professional",
+  "checkpoint_policy": "guided",
+  "human_approval_required": true,
+  "human_approved": false,
+  "artifacts": {
+    "brief": {
+      "version": "1.0",
+      "title": "3M Indoor Window Insulator Kit: A Clear Look at Winter Draft Reduction",
+      "hook": "A simple window film kit may help reduce drafts—but does it fit your windows?",
+      "key_points": [
+        "The supplied product information describes five film sheets for indoor windows up to 3 feet by 5 feet each.",
+        "The manufacturer says the kit is designed to help reduce heat loss, condensation, and frost buildup on indoor glass.",
+        "The product information lists a one-year limited warranty, subject to its terms.",
+        "The kit does not repair damaged frames, failed seals, or large structural gaps.",
+        "Actual energy savings depend on the home, windows, climate, and installation."
+      ],
+      "core_message": "Help viewers understand what this seasonal indoor window insulation kit is designed to do, its size limits, and what it cannot fix.",
+      "cta": "Check your window measurements and the current product details before deciding whether this kit fits your project.",
+      "tone": "clear, practical, evidence-led, and cautious about performance claims",
+      "style": "clean-professional",
+      "target_audience": "Homeowners and renters considering a seasonal DIY option for reducing drafts around indoor windows.",
+      "target_platform": "youtube",
+      "target_duration_seconds": 15,
+      "reference_material": [
+        "https://github.com/Swar-K/amazon-video-agent/blob/main/projects/B00002NCJI/facts.yaml",
+        "https://github.com/Swar-K/amazon-video-agent/blob/main/projects/B00002NCJI/script.md",
+        "https://github.com/Swar-K/amazon-video-agent/tree/main/projects/B00002NCJI/assets"
+      ],
+      "angle_options": [
+        {
+          "name": "Problem-to-solution product reveal",
+          "description": "Open on a chilly-window context, reveal the supplied 3M kit imagery, then land on the key fit limitation."
+        },
+        {
+          "name": "Quick installation overview",
+          "description": "Use the supplied product and tool images to show the measuring, preparation, and application sequence without claiming firsthand testing."
+        },
+        {
+          "name": "Buyer-fit reality check",
+          "description": "Lead with the 3-by-5-foot indoor-window limit, then show the product and its stated benefits alongside the important exclusions."
+        }
+      ],
+      "selected_angle": "Problem-to-solution product reveal",
+      "metadata": {
+        "source": "amazon_video_agent",
+        "asin": "B00002NCJI",
+        "product_name": "3M Indoor Window Insulator Kit - Five Pack",
+        "preview_only": true,
+        "voice_enabled": false,
+        "music_enabled": false
+      }
+    },
+    "proposal_packet": {
+      "version": "1.0",
+      "concept_options": [
+        {
+          "id": "c1",
+          "title": "A Warmer Window, Without Replacing It",
+          "hook": "A simple window film kit may help reduce drafts—but does it fit your windows?",
+          "narrative_structure": "problem_solution",
+          "visual_approach": "A 15-second source-led product reveal: establish the window problem with a restrained title card, use the supplied product_image_11.jpg and product_image_21.jpg stills as the hero product visuals, then finish with a legible 3 ft × 5 ft indoor-window fit check. No generated footage or unverified performance demonstration.",
+          "suggested_playbook": "clean-professional",
+          "target_audience": "Homeowners and renters considering seasonal DIY window insulation.",
+          "target_platform": "youtube",
+          "target_duration_seconds": 15,
+          "key_points": [
+            "Five film sheets are supplied for indoor windows up to 3 ft × 5 ft each, according to the supplied product information.",
+            "The manufacturer says the kit is designed to help reduce heat loss and condensation or frost buildup on indoor glass.",
+            "It does not repair failed seals or damaged frames, and energy savings are not guaranteed."
+          ],
+          "core_message": "This is a seasonal indoor window-film option for correctly sized windows—not a permanent window repair.",
+          "cta": "Measure your windows and check the current product details before buying.",
+          "tone": "practical, clear, measured",
+          "grounded_in": [
+            "facts.yaml manufacturer_claims",
+            "facts.yaml specs",
+            "facts.yaml cons",
+            "script.md limits"
+          ],
+          "why_this_works": "It directly answers the buyer's central question—what the kit is for and whether it fits—while using only the supplied product facts and existing product stills."
+        },
+        {
+          "id": "c2",
+          "title": "The 3M Window Film Setup: What You Need First",
+          "hook": "Before applying window film, there are three things to check.",
+          "narrative_structure": "tutorial",
+          "visual_approach": "A silent, image-led sequence using the supplied product and tool stills: measure the pane, prepare the glass, then show the film kit. On-screen labels explain each step; no animated hands, simulated installation, or claims that the product was personally tested.",
+          "suggested_playbook": "clean-professional",
+          "target_audience": "DIY-oriented renters and homeowners who want to understand the preparation involved.",
+          "target_platform": "youtube",
+          "target_duration_seconds": 15,
+          "key_points": [
+            "Measure each indoor window before opening the kit.",
+            "The supplied product information specifies a maximum intended window size of 3 ft × 5 ft per sheet.",
+            "Follow the current package instructions and warranty conditions."
+          ],
+          "core_message": "Check fit and preparation requirements before starting a DIY window-film project.",
+          "cta": "Review the package instructions and measure your windows first.",
+          "tone": "instructional, concise, practical",
+          "grounded_in": [
+            "facts.yaml specs",
+            "facts.yaml hands_on_notes",
+            "script.md overview",
+            "script.md in_use"
+          ],
+          "why_this_works": "It converts the source script's preparation details into a useful micro-tutorial, but it is less effective as a broad product introduction."
+        },
+        {
+          "id": "c3",
+          "title": "Is This Window Insulation Kit Right for Your Home?",
+          "hook": "This kit has a clear size limit—and it cannot fix every draft.",
+          "narrative_structure": "myth_busting",
+          "visual_approach": "Use supplied product stills with a simple fit/not-fit split-screen and concise limitation labels. Avoid price, rating, customer-review, savings, or performance claims because those are not supported by the supplied project facts.",
+          "suggested_playbook": "clean-professional",
+          "target_audience": "Buyers comparing seasonal window insulation options and trying to avoid a poor fit.",
+          "target_platform": "youtube",
+          "target_duration_seconds": 15,
+          "key_points": [
+            "Designed for indoor windows up to 3 ft × 5 ft per sheet.",
+            "Not intended for exterior glass or permanent repair of failed seals and damaged frames.",
+            "Actual energy savings vary by home, climate, windows, and installation."
+          ],
+          "core_message": "The right buyer is someone with correctly sized indoor windows and realistic expectations.",
+          "cta": "Check your window dimensions and the current listing details before choosing.",
+          "tone": "honest, buyer-focused, evidence-led",
+          "grounded_in": [
+            "facts.yaml specs",
+            "facts.yaml cons",
+            "facts.yaml not_for",
+            "facts.yaml notes"
+          ],
+          "why_this_works": "It builds buyer trust through clear limitations, though it may be better as a follow-up comparison or buyer-guide video than the first visual preview."
+        }
+      ],
+      "selected_concept": {
+        "concept_id": "c1",
+        "rationale": "Recommended starting direction because it gives the clearest product reveal in a short preview and uses the available product stills without requiring generated media. This is an agent recommendation only; the user has not approved the concept.",
+        "modifications": [
+          "Silent visual-only preview; no TTS, narration, music, or SFX.",
+          "Landscape 16:9; 15-second preview target.",
+          "Use existing Amazon Video Agent product stills only; no paid APIs or newly generated assets."
+        ]
+      },
+      "production_plan": {
+        "pipeline": "hybrid",
+        "playbook": "clean-professional",
+        "stages": [
+          {
+            "stage": "idea",
+            "tools": [
+              {
+                "tool_name": "Amazon Video Agent importer",
+                "role": "Bring the source brief, script, scene prompts, and existing product media into the OpenMontage project.",
+                "provider": "local repository files",
+                "available": true,
+                "estimated_cost_usd": 0,
+                "why_this_provider": "The source repo already contains the project facts, script, scene prompts, and product images."
+              }
+            ],
+            "approach": "Use the imported facts and existing media as the source of truth. Keep the proposal and concept approval pending until the user selects or revises a direction."
+          },
+          {
+            "stage": "script_and_scene_plan",
+            "tools": [
+              {
+                "tool_name": "OpenMontage artifact validation",
+                "role": "Validate the imported script and scene plan against OpenMontage schemas.",
+                "provider": "OpenMontage",
+                "available": true,
+                "estimated_cost_usd": 0,
+                "why_this_provider": "The importer and schema validation are already implemented and have passed CI."
+              }
+            ],
+            "approach": "Retain the supplied factual script as source material. For this preview, select only the opening problem, product reveal, and fit-limit beats; do not rewrite product claims or imply hands-on testing."
+          },
+          {
+            "stage": "assets",
+            "tools": [
+              {
+                "tool_name": "Imported product stills",
+                "role": "Use existing product image files as source visuals for the approved preview storyboard.",
+                "provider": "Amazon Video Agent project assets",
+                "available": true,
+                "estimated_cost_usd": 0,
+                "why_this_provider": "The sample project already includes local product images; no new asset generation is required."
+              }
+            ],
+            "approach": "After the scene-plan checkpoint, present the exact stills and per-scene visual treatment for human review. Do not render a draft before the assets gate is approved."
+          },
+          {
+            "stage": "edit",
+            "tools": [
+              {
+                "tool_name": "OpenMontage edit planner",
+                "role": "Create explicit scene timing, crop, motion, and overlay decisions after approvals.",
+                "provider": "OpenMontage",
+                "available": true,
+                "estimated_cost_usd": 0,
+                "why_this_provider": "Edit decisions are the required handoff between the approved scene and asset plan and the compose stage."
+              }
+            ],
+            "approach": "Build a 15-second 16:9 silent edit with restrained Ken Burns-style movement, clear typography, safe margins, and no unsupported claims."
+          },
+          {
+            "stage": "compose",
+            "tools": [
+              {
+                "tool_name": "Remotion",
+                "role": "Render the approved OpenMontage composition to H.264 MP4.",
+                "provider": "Remotion",
+                "available": true,
+                "estimated_cost_usd": 0,
+                "why_this_provider": "The Remotion composer package and dependencies were detected in CI. A native OpenMontage render has not yet been executed, so runtime integration remains to be proven."
+              }
+            ],
+            "approach": "Use Remotion as the explicitly selected runtime. Produce a short preview only after the idea, script, scene-plan, and assets gates are satisfied; validate codec, dimensions, duration, and full-file decode."
+          }
+        ],
+        "quality_tradeoffs": [
+          {
+            "tradeoff": "Existing product stills versus generating new footage",
+            "recommendation": "Use the existing stills for this zero-cost preview.",
+            "quality_impact": "Keeps the test grounded and free, but limits the proof to still-image motion and graphic composition; it does not test real video-footage handling."
+          },
+          {
+            "tradeoff": "Silent preview versus adding narration and music",
+            "recommendation": "Keep audio disabled for this test.",
+            "quality_impact": "Isolates the visual pipeline and avoids TTS, voice consistency, music licensing, and audio-mixing variables."
+          }
+        ],
+        "alternative_paths": [
+          {
+            "description": "Silent 15-second preview using only the existing product images and native Remotion composition.",
+            "total_cost_usd": 0,
+            "quality_level": "free",
+            "what_changes": "No external generation, TTS, music, or paid APIs. Native Remotion rendering must still be validated."
+          }
+        ],
+        "delivery_promise": {
+          "promise_type": "hybrid",
+          "motion_required": false,
+          "source_required": true,
+          "tone_mode": "educational",
+          "quality_floor": "draft",
+          "approved_fallback": null
+        },
+        "renderer_family": "product-reveal",
+        "render_runtime": "remotion",
+        "composition_mode": "templated",
+        "music_source": {
+          "source_type": "none",
+          "estimated_cost_usd": 0
+        }
+      },
+      "cost_estimate": {
+        "total_estimated_usd": 0,
+        "line_items": [
+          {
+            "tool": "Existing Amazon Video Agent project assets",
+            "operation": "Reuse existing product stills",
+            "quantity": 4,
+            "estimated_usd": 0,
+            "notes": "No new assets are generated."
+          },
+          {
+            "tool": "OpenMontage + Remotion",
+            "operation": "Native 15-second silent preview render in GitHub Actions",
+            "quantity": 1,
+            "estimated_usd": 0,
+            "notes": "Assumes available included GitHub Actions minutes; usage limits or overages are not guaranteed to be free."
+          }
+        ],
+        "budget_cap_usd": 0,
+        "budget_verdict": "within_budget",
+        "savings_options": [
+          "Do not call paid APIs or generate new media.",
+          "Keep voice, music, and sound effects disabled."
+        ]
+      },
+      "approval": {
+        "status": "pending",
+        "user_notes": "Awaiting user review. No creative approval has been recorded."
+      },
+      "metadata": {
+        "project_id": "amazon-B00002NCJI",
+        "asin": "B00002NCJI",
+        "source_repository": "Swar-K/amazon-video-agent",
+        "source_project_path": "projects/B00002NCJI",
+        "destination_repository": "Swar-K/video-creation-OpenMontage",
+        "preview": {
+          "duration_seconds": 15,
+          "aspect_ratio": "16:9",
+          "audio": "none",
+          "render_runtime": "remotion"
+        },
+        "governance": {
+          "no_edit_decisions": true,
+          "no_render_before_assets_approval": true,
+          "approval_status": "awaiting_human"
+        },
+        "source_media_note": "The source project contains product stills. Mood clips described in scenes.md are prompts, not confirmed generated video files."
+      }
+    },
+    "decision_log": {
+      "version": "1.0",
+      "project_id": "amazon-B00002NCJI",
+      "decisions": [
+        {
+          "decision_id": "d-001",
+          "stage": "idea",
+          "category": "concept_selection",
+          "subject": "Preview creative direction",
+          "options_considered": [
+            {
+              "option_id": "c1",
+              "label": "Problem-to-solution product reveal",
+              "score": 0.92,
+              "reason": "Strongest short-form product introduction using currently available stills."
+            },
+            {
+              "option_id": "c2",
+              "label": "Quick installation overview",
+              "score": 0.78,
+              "reason": "Useful but needs careful treatment to avoid implying unverified hands-on demonstration."
+            },
+            {
+              "option_id": "c3",
+              "label": "Buyer-fit reality check",
+              "score": 0.88,
+              "reason": "High trust and strong limitations, but more suitable as a follow-up buyer guide."
+            }
+          ],
+          "selected": "c1",
+          "reason": "Agent recommendation only; pending user selection.",
+          "user_visible": true,
+          "user_approved": false,
+          "confidence": 0.88
+        },
+        {
+          "decision_id": "d-002",
+          "stage": "idea",
+          "category": "render_runtime_selection",
+          "subject": "Native render runtime",
+          "options_considered": [
+            {
+              "option_id": "remotion",
+              "label": "Remotion",
+              "score": 0.9,
+              "reason": "Composer dependencies are present in CI and fit a React-based product composition."
+            },
+            {
+              "option_id": "hyperframes",
+              "label": "HyperFrames",
+              "score": 0.55,
+              "reason": "Doctor reported optional/runtime issues and it is not the selected engine for this hybrid composition."
+            },
+            {
+              "option_id": "ffmpeg",
+              "label": "FFmpeg concat",
+              "score": 0.3,
+              "reason": "Useful for the existing smoke test but not the intended native OpenMontage composition pipeline."
+            }
+          ],
+          "selected": "remotion",
+          "reason": "Recommended runtime, pending user approval and a real native render validation.",
+          "user_visible": true,
+          "user_approved": false,
+          "confidence": 0.82
+        },
+        {
+          "decision_id": "d-003",
+          "stage": "idea",
+          "category": "composition_mode",
+          "subject": "Composition authoring mode",
+          "options_considered": [
+            {
+              "option_id": "templated",
+              "label": "Templated composition",
+              "score": 0.9,
+              "reason": "Appropriate for a short, repeatable product preview using existing source stills and established components."
+            },
+            {
+              "option_id": "atelier",
+              "label": "Atelier composition",
+              "score": 0.68,
+              "reason": "Offers a bespoke visual language but adds authoring scope not needed to prove this integration."
+            }
+          ],
+          "selected": "templated",
+          "reason": "Recommended for the constrained smoke-preview deliverable; pending user approval.",
+          "user_visible": true,
+          "user_approved": false,
+          "confidence": 0.84
+        },
+        {
+          "decision_id": "d-004",
+          "stage": "idea",
+          "category": "budget_tradeoff",
+          "subject": "External asset and service spend",
+          "options_considered": [
+            {
+              "option_id": "existing_assets_only",
+              "label": "Existing assets only; $0",
+              "score": 1,
+              "reason": "Uses the product images already in the Amazon Video Agent project and avoids paid services."
+            },
+            {
+              "option_id": "generated_media",
+              "label": "Generate new media",
+              "score": 0.2,
+              "reason": "Not required for this test and would introduce cost and additional review."
+            }
+          ],
+          "selected": "existing_assets_only",
+          "reason": "The user-approved test configuration is silent visual-only and zero-cost.",
+          "user_visible": true,
+          "user_approved": true,
+          "confidence": 0.99
+        },
+        {
+          "decision_id": "d-005",
+          "stage": "idea",
+          "category": "music_source",
+          "subject": "Music and sound",
+          "options_considered": [
+            {
+              "option_id": "none",
+              "label": "No audio",
+              "score": 1,
+              "reason": "Keeps this test strictly visual-only."
+            },
+            {
+              "option_id": "music",
+              "label": "Add music",
+              "score": 0.1,
+              "reason": "Outside the approved silent test configuration."
+            }
+          ],
+          "selected": "none",
+          "reason": "Silent visual-only test; no audio generation or mixing.",
+          "user_visible": true,
+          "user_approved": true,
+          "confidence": 1
+        },
+        {
+          "decision_id": "d-006",
+          "stage": "idea",
+          "category": "motion_commitment",
+          "subject": "Motion level for preview",
+          "options_considered": [
+            {
+              "option_id": "restrained_still_motion",
+              "label": "Restrained motion on stills",
+              "score": 0.9,
+              "reason": "A subtle pan/zoom and simple transitions are sufficient for a short native renderer proof."
+            },
+            {
+              "option_id": "generated_video_motion",
+              "label": "New moving footage",
+              "score": 0.2,
+              "reason": "Not necessary for the current integration test and not available as confirmed source media."
+            }
+          ],
+          "selected": "restrained_still_motion",
+          "reason": "The preview should prove native composition and image handling without introducing generated assets.",
+          "user_visible": true,
+          "user_approved": false,
+          "confidence": 0.9
+        }
+      ]
+    }
+  },
+  "review": {
+    "status": "ready_for_human_review",
+    "findings": [
+      "Three distinct concepts are grounded in the source facts and existing project materials.",
+      "The source project has product stills; the mood-video prompts are not confirmed generated clips.",
+      "No TTS, music, paid APIs, new assets, edit decisions, or render have been invoked.",
+      "Native Remotion rendering remains unverified; only dependency availability has been checked."
+    ]
+  },
+  "cost_snapshot": {
+    "total_spent_usd": 0,
+    "total_reserved_usd": 0,
+    "budget_remaining_usd": 0
+  },
+  "metadata": {
+    "source_repository": "Swar-K/amazon-video-agent",
+    "source_ref": "main",
+    "source_project": "projects/B00002NCJI",
+    "destination_repository": "Swar-K/video-creation-OpenMontage",
+    "checkpoint_note": "Idea-stage proposal awaiting explicit human approval. Do not proceed to script, scene-plan, assets, edit, or compose until approved."
+  }
+}

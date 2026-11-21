@@ -113,10 +113,37 @@ def import_project(
     project_id = _validate_project_id(project_id)
     project_root = projects_dir or PROJECTS_DIR
     project_dir = project_root / project_id
+    artifact_names = ("brief.json", "script.json", "scene_plan.json", "asset_manifest.json")
     if project_dir.exists():
-        raise FileExistsError(
-            f"OpenMontage project already exists: {project_dir}. Choose a new project-id."
-        )
+        # A proposal checkpoint may initialize the canonical workspace before
+        # source media is imported. Resume only that explicitly initialized,
+        # still-empty workspace; never overwrite a prior import or user assets.
+        marker_path = project_dir / "project.json"
+        if not marker_path.is_file():
+            raise FileExistsError(
+                f"OpenMontage project already exists without a resumable project marker: {project_dir}"
+            )
+        try:
+            marker = json.loads(marker_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(f"Existing project marker is unreadable: {marker_path}") from exc
+        if marker.get("project_id") != project_id or marker.get("pipeline_type") != "hybrid":
+            raise ValueError(
+                f"Existing workspace marker does not match project {project_id!r} and pipeline 'hybrid'"
+            )
+        artifacts_dir = project_dir / "artifacts"
+        collisions = [name for name in artifact_names if (artifacts_dir / name).exists()]
+        if collisions or (project_dir / "amazon_source").exists():
+            raise FileExistsError(
+                "Refusing to overwrite an existing import: "
+                + (", ".join(collisions) if collisions else "amazon_source already exists")
+            )
+        for folder in ("images", "video", "audio"):
+            asset_dir = project_dir / "assets" / folder
+            if asset_dir.exists() and any(asset_dir.iterdir()):
+                raise FileExistsError(
+                    f"Refusing to overwrite existing user/imported media in {asset_dir}"
+                )
 
     project_dir = init_project(
         project_id,
@@ -126,7 +153,6 @@ def import_project(
         style_playbook="clean-professional",
     )
     artifacts_dir = project_dir / "artifacts"
-    artifact_names = ("brief.json", "script.json", "scene_plan.json", "asset_manifest.json")
     collisions = [name for name in artifact_names if (artifacts_dir / name).exists()]
     if collisions:
         raise FileExistsError("Refusing to overwrite existing artifacts: " + ", ".join(collisions))
@@ -148,21 +174,28 @@ def import_project(
     scene_plan = []
     scene_to_section = {}
     for index, visual in enumerate(source_scenes):
-        section = script_sections[min(
+        section_index = min(
             len(script_sections) - 1,
             round(index * (len(script_sections) - 1) / max(1, len(source_scenes) - 1)),
-        )]
+        )
+        section = script_sections[section_index]
         scene_id = visual["id"]
-        linked_section = f"section-{section['id']}"
         scene_to_section[scene_id] = scene_id
-        scene_to_section[visual["ref"]] = scene_id
+        if visual["ref"].lower() != "none":
+            scene_to_section[visual["ref"]] = scene_id
         ai_clip = source / "assets" / f"ai_{scene_id}.mp4"
+        # scenes.md explicitly describes these as short (~5-second) AI clips.
+        # Anchor each visual beat to its representative narration section;
+        # never stretch a short source clip across an equal share of the full
+        # narration timeline.
+        scene_start = float(section["start_seconds"])
+        scene_end = min(total_duration, scene_start + 5.0)
         scene_plan.append({
             "id": scene_id,
             "type": "broll" if visual["type"].lower() == "mood" else "generated",
             "description": f"Imported Amazon scene prompt: {visual['prompt']}",
-            "start_seconds": round(total_duration * index / len(source_scenes), 3),
-            "end_seconds": round(total_duration * (index + 1) / len(source_scenes), 3),
+            "start_seconds": round(scene_start, 3),
+            "end_seconds": round(max(scene_start + 0.01, scene_end), 3),
             "script_section_id": section["id"],
             "framing": "Reframe deliberately for each approved aspect ratio; keep product details and text in safe areas.",
             "movement": "Retain source clip movement or apply restrained motion to still imagery.",
@@ -224,7 +257,7 @@ def import_project(
                 media.name,
                 scene_to_section.get(
                     re.sub(r"^ai_(s\d+)\.mp4$", r"\1", media.name),
-                    "section-" + script_sections[0]["id"],
+                    "unassigned",
                 ),
             ),
             "format": media.suffix.lower().lstrip("."),

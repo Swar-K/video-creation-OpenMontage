@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "assets": [
+    {
+      "id": "a01",
+      "type": "image",
+      "path": "assets/images/product_image_11.jpg",
+      "source_tool": "amazon-video-agent-importer",
+      "scene_id": "shared",
+      "format": "jpg",
+      "generation_summary": "Existing supplied indoor-window context still; reused unchanged."
+    },
+    {
+      "id": "a02",
+      "type": "image",
+      "path": "assets/images/product_image_21.jpg",
+      "source_tool": "amazon-video-agent-importer",
+      "scene_id": "shared",
+      "format": "jpg",
+      "generation_summary": "Existing supplied 3M product/packaging still; reused unchanged."
+    }
+  ],
+  "total_cost_usd": 0,
+  "metadata": {
+    "project_id": "amazon-B00002NCJI",
+    "source_policy": "existing_supplied_stills_only",
+    "external_assets_allowed": false,
+    "generated_assets_allowed": false
+  }
+}

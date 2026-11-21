@@ -1,0 +1,252 @@
+{
+  "version": "1.0",
+  "project_id": "amazon-B00002NCJI",
+  "decisions": [
+    {
+      "decision_id": "d-001",
+      "stage": "idea",
+      "category": "concept_selection",
+      "subject": "Preview creative direction",
+      "options_considered": [
+        {
+          "option_id": "c1",
+          "label": "Problem-to-solution product reveal",
+          "score": 0.92,
+          "reason": "Strongest short-form product introduction using currently available stills."
+        },
+        {
+          "option_id": "c2",
+          "label": "Quick installation overview",
+          "score": 0.78,
+          "reason": "Useful but needs careful treatment to avoid implying unverified hands-on demonstration."
+        },
+        {
+          "option_id": "c3",
+          "label": "Buyer-fit reality check",
+          "score": 0.88,
+          "reason": "High trust and strong limitations, but more suitable as a follow-up buyer guide."
+        }
+      ],
+      "selected": "c1",
+      "reason": "User explicitly approved all three concepts (C1, C2, and C3) as retained creative directions and confirmed C1 as the first preview to render.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 0.88,
+      "user_approval_scope": {
+        "approved_concepts": [
+          "c1",
+          "c2",
+          "c3"
+        ],
+        "first_preview": "c1",
+        "approved_at": "2026-11-21"
+      }
+    },
+    {
+      "decision_id": "d-002",
+      "stage": "idea",
+      "category": "render_runtime_selection",
+      "subject": "Native render runtime",
+      "options_considered": [
+        {
+          "option_id": "remotion",
+          "label": "Remotion",
+          "score": 0.9,
+          "reason": "Composer dependencies are present in CI and fit a React-based product composition."
+        },
+        {
+          "option_id": "hyperframes",
+          "label": "HyperFrames",
+          "score": 0.55,
+          "reason": "Doctor reported optional/runtime issues and it is not the selected engine for this hybrid composition."
+        },
+        {
+          "option_id": "ffmpeg",
+          "label": "FFmpeg concat",
+          "score": 0.3,
+          "reason": "Useful for the existing smoke test but not the intended native OpenMontage composition pipeline."
+        }
+      ],
+      "selected": "remotion",
+      "reason": "User explicitly approved Remotion as the native render runtime for this preview.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 0.82,
+      "user_approval_scope": {
+        "approved_by_user": true,
+        "approved_at": "2026-11-21"
+      }
+    },
+    {
+      "decision_id": "d-003",
+      "stage": "idea",
+      "category": "composition_mode",
+      "subject": "Composition authoring mode",
+      "options_considered": [
+        {
+          "option_id": "templated",
+          "label": "Templated composition",
+          "score": 0.9,
+          "reason": "Appropriate for a short, repeatable product preview using existing source stills and established components."
+        },
+        {
+          "option_id": "atelier",
+          "label": "Atelier composition",
+          "score": 0.68,
+          "reason": "Offers a bespoke visual language but adds authoring scope not needed to prove this integration."
+        }
+      ],
+      "selected": "templated",
+      "reason": "User explicitly approved templated composition for this preview.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 0.84,
+      "user_approval_scope": {
+        "approved_by_user": true,
+        "approved_at": "2026-11-21"
+      }
+    },
+    {
+      "decision_id": "d-004",
+      "stage": "idea",
+      "category": "budget_tradeoff",
+      "subject": "External asset and service spend",
+      "options_considered": [
+        {
+          "option_id": "existing_assets_only",
+          "label": "Existing assets only; $0",
+          "score": 1,
+          "reason": "Uses the product images already in the Amazon Video Agent project and avoids paid services."
+        },
+        {
+          "option_id": "generated_media",
+          "label": "Generate new media",
+          "score": 0.2,
+          "reason": "Not required for this test and would introduce cost and additional review."
+        }
+      ],
+      "selected": "existing_assets_only",
+      "reason": "The user-approved test configuration is silent visual-only and zero-cost.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 0.99
+    },
+    {
+      "decision_id": "d-005",
+      "stage": "idea",
+      "category": "music_source",
+      "subject": "Music and sound",
+      "options_considered": [
+        {
+          "option_id": "none",
+          "label": "No audio",
+          "score": 1,
+          "reason": "Keeps this test strictly visual-only."
+        },
+        {
+          "option_id": "music",
+          "label": "Add music",
+          "score": 0.1,
+          "reason": "Outside the approved silent test configuration."
+        }
+      ],
+      "selected": "none",
+      "reason": "Silent visual-only test; no audio generation or mixing.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 1
+    },
+    {
+      "decision_id": "d-006",
+      "stage": "idea",
+      "category": "motion_commitment",
+      "subject": "Motion level for preview",
+      "options_considered": [
+        {
+          "option_id": "restrained_still_motion",
+          "label": "Restrained motion on stills",
+          "score": 0.9,
+          "reason": "A subtle pan/zoom and simple transitions are sufficient for a short native renderer proof."
+        },
+        {
+          "option_id": "generated_video_motion",
+          "label": "New moving footage",
+          "score": 0.2,
+          "reason": "Not necessary for the current integration test and not available as confirmed source media."
+        }
+      ],
+      "selected": "restrained_still_motion",
+      "reason": "User explicitly approved restrained pan/zoom motion on existing product stills.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 0.9,
+      "user_approval_scope": {
+        "approved_by_user": true,
+        "approved_at": "2026-11-21"
+      }
+    },
+    {
+      "decision_id": "d-007",
+      "stage": "script",
+      "category": "script_approval",
+      "subject": "15-second silent visual-only C1 preview script",
+      "selected": "approved_as_presented",
+      "reason": "User explicitly approved the complete 15-second script, including its five timed on-screen text sections and stated product-fit limitation.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 1,
+      "user_approval_scope": {
+        "approved_by_user": true,
+        "approved_at": "2026-11-21",
+        "scope": "The script checkpoint only. Scene plan, assets, edit, and compose retain their separate gates."
+      }
+    },
+    {
+      "decision_id": "d-008",
+      "stage": "scene_plan",
+      "category": "scene_plan_approval",
+      "subject": "Five-scene 15-second C1 silent visual-only scene plan",
+      "selected": "approved_as_presented",
+      "reason": "User explicitly approved the complete scene plan. Approval covers the five timed scenes, existing still-image references, restrained motion, and exact approved-script overlays.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 1,
+      "user_approval_scope": {
+        "approved_by_user": true,
+        "approved_at": "2026-11-21",
+        "scope": "Scene-plan checkpoint only. Assets, edit, and compose remain separately gated."
+      }
+    },
+    {
+      "decision_id": "d-009",
+      "stage": "assets",
+      "category": "assets_approval",
+      "subject": "C1 preview source stills and composition treatments",
+      "selected": "approved_as_presented",
+      "reason": "User explicitly approved the assets checkpoint covering the two supplied stills, planned scene usage, crops, restrained motion, and approved-script overlays.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 1,
+      "user_approval_scope": {
+        "approved_by_user": true,
+        "approved_at": "2026-11-21",
+        "scope": "Assets checkpoint only. Edit and compose follow their own pipeline controls."
+      }
+    },
+    {
+      "decision_id": "d-010",
+      "stage": "edit",
+      "category": "edit_approval",
+      "subject": "Five-scene C1 Remotion edit decisions",
+      "selected": "approved_for_native_preview",
+      "reason": "User explicitly authorized all remaining work, including edit decisions and the native Remotion preview.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 1,
+      "user_approval_scope": {
+        "approved_at": "2026-11-21",
+        "scope": "Edit decisions and native preview execution for this approved 15-second C1 project."
+      }
+    }
+  ]
+}

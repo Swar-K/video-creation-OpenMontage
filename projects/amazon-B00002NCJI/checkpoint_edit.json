@@ -1,0 +1,174 @@
+{
+  "version": "1.0",
+  "project_id": "amazon-B00002NCJI",
+  "pipeline_type": "hybrid",
+  "stage": "edit",
+  "status": "completed",
+  "timestamp": "2026-11-21T18:30:00Z",
+  "style_playbook": "clean-professional",
+  "checkpoint_policy": "guided",
+  "human_approval_required": false,
+  "human_approved": true,
+  "artifacts": {
+    "edit_decisions": {
+      "version": "1.0",
+      "tailPaddingSeconds": 0,
+      "cuts": [
+        {
+          "id": "s01",
+          "source": "a01",
+          "in_seconds": 0,
+          "out_seconds": 2.5,
+          "layer": "primary",
+          "transform": {
+            "animation": "subtle-zoom-in"
+          },
+          "transition_in": "fade",
+          "transition_out": "dissolve",
+          "transition_duration": 0.2,
+          "reason": "Approved window-context hook; restrained 3 percent push-in."
+        },
+        {
+          "id": "s02",
+          "source": "a02",
+          "in_seconds": 2.5,
+          "out_seconds": 6,
+          "layer": "primary",
+          "transform": {
+            "animation": "subtle-zoom-in"
+          },
+          "transition_in": "dissolve",
+          "transition_out": "cut",
+          "transition_duration": 0.2,
+          "reason": "Approved product reveal; restrained 2–3 percent push-in."
+        },
+        {
+          "id": "s03",
+          "source": "a02",
+          "in_seconds": 6,
+          "out_seconds": 10.5,
+          "layer": "primary",
+          "transform": {
+            "animation": "subtle-pan-left"
+          },
+          "transition_in": "cut",
+          "transition_out": "dissolve",
+          "transition_duration": 0.2,
+          "reason": "Approved fit specification; subtle horizontal pan under 2 percent of frame width."
+        },
+        {
+          "id": "s04",
+          "source": "a01",
+          "in_seconds": 10.5,
+          "out_seconds": 13,
+          "layer": "primary",
+          "transform": {
+            "animation": "static"
+          },
+          "transition_in": "dissolve",
+          "transition_out": "cut",
+          "transition_duration": 0.2,
+          "reason": "Approved product limitation; static image for legibility."
+        },
+        {
+          "id": "s05",
+          "source": "a02",
+          "in_seconds": 13,
+          "out_seconds": 15,
+          "layer": "primary",
+          "transform": {
+            "animation": "subtle-zoom-in"
+          },
+          "transition_in": "cut",
+          "transition_out": "fade",
+          "transition_duration": 0.17,
+          "reason": "Approved practical CTA; restrained 2 percent push-in."
+        }
+      ],
+      "overlays": [
+        {
+          "type": "section_title",
+          "in_seconds": 0,
+          "out_seconds": 2.5,
+          "text": "Drafty windows?",
+          "position": "center"
+        },
+        {
+          "type": "section_title",
+          "in_seconds": 2.5,
+          "out_seconds": 6,
+          "text": "3M Indoor Window Insulator Kit",
+          "position": "center"
+        },
+        {
+          "type": "section_title",
+          "in_seconds": 6,
+          "out_seconds": 10.5,
+          "text": "Five film sheets",
+          "subtitle": "For indoor windows up to 3 ft × 5 ft each.",
+          "position": "center"
+        },
+        {
+          "type": "section_title",
+          "in_seconds": 10.5,
+          "out_seconds": 13,
+          "text": "A seasonal option—not a repair",
+          "subtitle": "for failed seals or damaged frames.",
+          "position": "center"
+        },
+        {
+          "type": "section_title",
+          "in_seconds": 13,
+          "out_seconds": 15,
+          "text": "Measure your windows before choosing.",
+          "position": "center"
+        }
+      ],
+      "renderer_family": "product-reveal",
+      "render_runtime": "remotion",
+      "composition_mode": "templated",
+      "metadata": {
+        "project_id": "amazon-B00002NCJI",
+        "concept_id": "c1",
+        "playbook": "clean-professional",
+        "duration_seconds": 15,
+        "aspect_ratio": "16:9",
+        "fps": 30,
+        "audio": "none",
+        "source_policy": "existing_supplied_stills_only",
+        "external_assets_allowed": false,
+        "generated_assets_allowed": false,
+        "proposal_render_runtime": "remotion",
+        "notes": [
+          "Uses only approved stills product_image_11.jpg and product_image_21.jpg.",
+          "Text overlays reproduce the approved 15-second script.",
+          "Motion presets are capped at 3 percent zoom or a 20 px horizontal drift at 1920x1080.",
+          "No narration, music, sound effects, paid APIs, or generated media."
+        ]
+      }
+    }
+  },
+  "review": {
+    "status": "approved",
+    "findings": [
+      "Edit decisions map one-to-one to the five approved scenes and preserve the approved 0–15 second timings.",
+      "Only approved supplied stills are referenced; no new assets are introduced.",
+      "Timed text overlays use the Remotion Explainer section_title component.",
+      "Motion uses dedicated subtle presets matching the approved 2–3 percent still-image treatment.",
+      "Renderer family remains product-reveal; runtime remains Remotion; composition mode remains templated.",
+      "Audio is omitted: the preview is silent."
+    ],
+    "unresolved": [
+      "Native Remotion execution and final media validation remain pending."
+    ]
+  },
+  "cost_snapshot": {
+    "total_spent_usd": 0,
+    "total_reserved_usd": 0,
+    "budget_remaining_usd": 0
+  },
+  "metadata": {
+    "approval_scope": "User explicitly authorized edit decisions and native preview execution in this conversation.",
+    "next_stage": "compose"
+  }
+}

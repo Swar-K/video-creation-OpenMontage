@@ -232,6 +232,21 @@
         "approved_at": "2026-11-21",
         "scope": "Assets checkpoint only. Edit and compose follow their own pipeline controls."
       }
+    },
+    {
+      "decision_id": "d-010",
+      "stage": "edit",
+      "category": "edit_approval",
+      "subject": "Five-scene C1 Remotion edit decisions",
+      "selected": "approved_for_native_preview",
+      "reason": "User explicitly authorized all remaining work, including edit decisions and the native Remotion preview.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 1,
+      "user_approval_scope": {
+        "approved_at": "2026-11-21",
+        "scope": "Edit decisions and native preview execution for this approved 15-second C1 project."
+      }
     }
   ]
 }

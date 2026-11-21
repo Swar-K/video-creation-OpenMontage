@@ -226,8 +226,8 @@
     ]
   },
   "approval": {
-    "status": "pending",
-    "user_notes": "Concept decision approved: retain C1, C2, and C3; use C1 for the first 15-second preview. This does not approve the remaining idea-stage decisions (Remotion runtime selection, templated composition mode, and restrained motion), nor does it approve script, scene-plan, assets, edit, or compose stages."
+    "status": "approved",
+    "user_notes": "User approved C1, C2, and C3 as retained concepts, selected C1 for the first preview, and approved the proposed Remotion runtime, templated composition mode, and restrained still-image motion. Approval is limited to the idea/proposal configuration; downstream script, scene-plan, assets, edit, and compose gates remain subject to their own checkpoints."
   },
   "metadata": {
     "project_id": "amazon-B00002NCJI",

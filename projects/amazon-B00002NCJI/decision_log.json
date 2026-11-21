@@ -1,0 +1,168 @@
+{
+  "version": "1.0",
+  "project_id": "amazon-B00002NCJI",
+  "decisions": [
+    {
+      "decision_id": "d-001",
+      "stage": "idea",
+      "category": "concept_selection",
+      "subject": "Preview creative direction",
+      "options_considered": [
+        {
+          "option_id": "c1",
+          "label": "Problem-to-solution product reveal",
+          "score": 0.92,
+          "reason": "Strongest short-form product introduction using currently available stills."
+        },
+        {
+          "option_id": "c2",
+          "label": "Quick installation overview",
+          "score": 0.78,
+          "reason": "Useful but needs careful treatment to avoid implying unverified hands-on demonstration."
+        },
+        {
+          "option_id": "c3",
+          "label": "Buyer-fit reality check",
+          "score": 0.88,
+          "reason": "High trust and strong limitations, but more suitable as a follow-up buyer guide."
+        }
+      ],
+      "selected": "c1",
+      "reason": "Agent recommendation only; pending user selection.",
+      "user_visible": true,
+      "user_approved": false,
+      "confidence": 0.88
+    },
+    {
+      "decision_id": "d-002",
+      "stage": "idea",
+      "category": "render_runtime_selection",
+      "subject": "Native render runtime",
+      "options_considered": [
+        {
+          "option_id": "remotion",
+          "label": "Remotion",
+          "score": 0.9,
+          "reason": "Composer dependencies are present in CI and fit a React-based product composition."
+        },
+        {
+          "option_id": "hyperframes",
+          "label": "HyperFrames",
+          "score": 0.55,
+          "reason": "Doctor reported optional/runtime issues and it is not the selected engine for this hybrid composition."
+        },
+        {
+          "option_id": "ffmpeg",
+          "label": "FFmpeg concat",
+          "score": 0.3,
+          "reason": "Useful for the existing smoke test but not the intended native OpenMontage composition pipeline."
+        }
+      ],
+      "selected": "remotion",
+      "reason": "Recommended runtime, pending user approval and a real native render validation.",
+      "user_visible": true,
+      "user_approved": false,
+      "confidence": 0.82
+    },
+    {
+      "decision_id": "d-003",
+      "stage": "idea",
+      "category": "composition_mode",
+      "subject": "Composition authoring mode",
+      "options_considered": [
+        {
+          "option_id": "templated",
+          "label": "Templated composition",
+          "score": 0.9,
+          "reason": "Appropriate for a short, repeatable product preview using existing source stills and established components."
+        },
+        {
+          "option_id": "atelier",
+          "label": "Atelier composition",
+          "score": 0.68,
+          "reason": "Offers a bespoke visual language but adds authoring scope not needed to prove this integration."
+        }
+      ],
+      "selected": "templated",
+      "reason": "Recommended for the constrained smoke-preview deliverable; pending user approval.",
+      "user_visible": true,
+      "user_approved": false,
+      "confidence": 0.84
+    },
+    {
+      "decision_id": "d-004",
+      "stage": "idea",
+      "category": "budget_tradeoff",
+      "subject": "External asset and service spend",
+      "options_considered": [
+        {
+          "option_id": "existing_assets_only",
+          "label": "Existing assets only; $0",
+          "score": 1,
+          "reason": "Uses the product images already in the Amazon Video Agent project and avoids paid services."
+        },
+        {
+          "option_id": "generated_media",
+          "label": "Generate new media",
+          "score": 0.2,
+          "reason": "Not required for this test and would introduce cost and additional review."
+        }
+      ],
+      "selected": "existing_assets_only",
+      "reason": "The user-approved test configuration is silent visual-only and zero-cost.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 0.99
+    },
+    {
+      "decision_id": "d-005",
+      "stage": "idea",
+      "category": "music_source",
+      "subject": "Music and sound",
+      "options_considered": [
+        {
+          "option_id": "none",
+          "label": "No audio",
+          "score": 1,
+          "reason": "Keeps this test strictly visual-only."
+        },
+        {
+          "option_id": "music",
+          "label": "Add music",
+          "score": 0.1,
+          "reason": "Outside the approved silent test configuration."
+        }
+      ],
+      "selected": "none",
+      "reason": "Silent visual-only test; no audio generation or mixing.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 1
+    },
+    {
+      "decision_id": "d-006",
+      "stage": "idea",
+      "category": "motion_commitment",
+      "subject": "Motion level for preview",
+      "options_considered": [
+        {
+          "option_id": "restrained_still_motion",
+          "label": "Restrained motion on stills",
+          "score": 0.9,
+          "reason": "A subtle pan/zoom and simple transitions are sufficient for a short native renderer proof."
+        },
+        {
+          "option_id": "generated_video_motion",
+          "label": "New moving footage",
+          "score": 0.2,
+          "reason": "Not necessary for the current integration test and not available as confirmed source media."
+        }
+      ],
+      "selected": "restrained_still_motion",
+      "reason": "The preview should prove native composition and image handling without introducing generated assets.",
+      "user_visible": true,
+      "user_approved": false,
+      "confidence": 0.9
+    }
+  ]
+}

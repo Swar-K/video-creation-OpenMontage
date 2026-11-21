@@ -281,6 +281,76 @@ jobs:
           print("Media integrity check passed")
           PY
 
+      - name: Package complete imported project for human review
+        working-directory: openmontage
+        run: |
+          python - <<'PY'
+          import json
+          import zipfile
+          from pathlib import Path
+
+          project = Path("${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-ci").resolve()
+          source = Path("../amazon-video-agent/projects/B00002NCJI").resolve()
+          output = Path("${{ runner.temp }}/amazon-B00002NCJI-openmontage-review.zip")
+          required = [
+              project / "project.json",
+              project / "artifacts/brief.json",
+              project / "artifacts/script.json",
+              project / "artifacts/scene_plan.json",
+              project / "artifacts/asset_manifest.json",
+          ]
+          for path in required:
+              assert path.is_file(), f"Review package is missing {path}"
+
+          readme = """# OpenMontage imported project review package
+
+          This package contains the imported OpenMontage seed artifacts and copied source media for human review.
+
+          Contents:
+          - artifacts/: brief, script, scene plan, and asset manifest
+          - assets/: imported image, video, and audio files
+          - source/: original Amazon Video Agent facts.yaml, script.md, and scenes.md
+          - project.json: OpenMontage project identity and pipeline metadata
+
+          Approval boundary:
+          - This is an import/review package, not an approved edit.
+          - No edit_decisions.json is included or created.
+          - No native Remotion render is performed by this packaging step.
+          - Script, scene-plan, and assets checkpoints still require their own human approvals.
+          """
+          with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+              for path in required:
+                  archive.write(path, path.relative_to(project).as_posix())
+              for folder in ("artifacts", "assets"):
+                  root = project / folder
+                  for path in sorted(root.rglob("*")):
+                      if path.is_file() and not path.is_symlink():
+                          archive.write(path, path.relative_to(project).as_posix())
+              for name in ("facts.yaml", "script.md", "scenes.md"):
+                  path = source / name
+                  assert path.is_file(), f"Source review input missing: {path}"
+                  archive.write(path, f"source/{name}")
+              archive.writestr("REVIEW_README.md", readme)
+
+          with zipfile.ZipFile(output) as archive:
+              bad = archive.testzip()
+              assert bad is None, f"Review ZIP failed integrity check at {bad}"
+              names = archive.namelist()
+              assert "artifacts/script.json" in names
+              assert "artifacts/scene_plan.json" in names
+              assert any(name.startswith("assets/images/") for name in names)
+          print(f"Created review package: {output} ({output.stat().st_size} bytes)")
+          print(f"Packaged files: {len(names)}")
+          PY
+
+      - name: Upload complete imported project review package
+        uses: actions/upload-artifact@v4
+        with:
+          name: amazon-video-agent-project-review
+          path: ${{ runner.temp }}/amazon-B00002NCJI-openmontage-review.zip
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Install FFmpeg for render smoke test
         run: |
           sudo apt-get update

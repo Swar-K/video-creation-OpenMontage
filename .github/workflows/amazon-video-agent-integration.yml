@@ -111,7 +111,6 @@ jobs:
           retention-days: 7
 
   import-and-validate:
-  import-and-validate:
     name: Import sample project and validate artifacts
     runs-on: ubuntu-latest
     steps:

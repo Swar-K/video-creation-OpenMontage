@@ -184,6 +184,22 @@
         "approved_by_user": true,
         "approved_at": "2026-11-21"
       }
+    },
+    {
+      "decision_id": "d-007",
+      "stage": "script",
+      "category": "script_approval",
+      "subject": "15-second silent visual-only C1 preview script",
+      "selected": "approved_as_presented",
+      "reason": "User explicitly approved the complete 15-second script, including its five timed on-screen text sections and stated product-fit limitation.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 1,
+      "user_approval_scope": {
+        "approved_by_user": true,
+        "approved_at": "2026-11-21",
+        "scope": "The script checkpoint only. Scene plan, assets, edit, and compose retain their separate gates."
+      }
     }
   ]
 }

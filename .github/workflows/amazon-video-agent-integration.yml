@@ -53,7 +53,9 @@ jobs:
           NODE_MAJOR="$(node -p 'Number(process.versions.node.split(".")[0])')"
           FFMPEG_OK=false
           REMOTION_OK=false
-          HYPERFRAMES_OK=false
+          HYPERFRAMES_DOCTOR_STATUS="not_run"
+          HYPERFRAMES_DOCTOR_EXIT="not_run"
+          HYPERFRAMES_DOCTOR_OK="unknown"
 
           command -v ffmpeg >/dev/null 2>&1 && FFMPEG_OK=true
           if command -v npx >/dev/null 2>&1 \
@@ -68,23 +70,52 @@ jobs:
 
           if [ "$NODE_MAJOR" -ge 22 ] && [ "$FFMPEG_OK" = true ] \
             && command -v npx >/dev/null 2>&1; then
-            if timeout 30s npx --yes hyperframes doctor --json > "$RUNNER_TEMP/hyperframes-doctor.json" 2>&1; then
-              HYPERFRAMES_OK=true
+            set +e
+            timeout 30s npx --yes hyperframes doctor --json > "$RUNNER_TEMP/hyperframes-doctor.json" 2>&1
+            HYPERFRAMES_DOCTOR_EXIT="$?"
+            set -e
+            if [ -s "$RUNNER_TEMP/hyperframes-doctor.json" ]; then
+              HYPERFRAMES_DOCTOR_OK="$(python - "$RUNNER_TEMP/hyperframes-doctor.json" <<'PY'
+          import json
+          import sys
+          try:
+              with open(sys.argv[1], encoding="utf-8") as handle:
+                  report = json.load(handle)
+              print(str(report.get("ok", "unknown")).lower())
+          except (OSError, json.JSONDecodeError, AttributeError):
+              print("invalid")
+          PY
+          )"
+              if [ "$HYPERFRAMES_DOCTOR_OK" = "true" ]; then
+                HYPERFRAMES_DOCTOR_STATUS="passed"
+              elif [ "$HYPERFRAMES_DOCTOR_OK" = "false" ]; then
+                HYPERFRAMES_DOCTOR_STATUS="reported_issues"
+              else
+                HYPERFRAMES_DOCTOR_STATUS="unreadable_report"
+              fi
             else
-              echo "HyperFrames doctor output:"
+              HYPERFRAMES_DOCTOR_STATUS="no_report"
+            fi
+            echo "HyperFrames doctor status: $HYPERFRAMES_DOCTOR_STATUS (exit $HYPERFRAMES_DOCTOR_EXIT; JSON ok=$HYPERFRAMES_DOCTOR_OK)"
+            if [ "$HYPERFRAMES_DOCTOR_STATUS" != "passed" ]; then
+              echo "HyperFrames doctor details:"
               cat "$RUNNER_TEMP/hyperframes-doctor.json" || true
             fi
           else
-            echo "HyperFrames prerequisites unavailable: requires Node.js >=22, npx, and FFmpeg."
+            echo "HyperFrames doctor not run: requires Node.js >=22, npx, and FFmpeg."
           fi
 
           {
             echo "## Native render runtime preflight"
             echo
             echo "- Node.js: $(node --version)"
-            echo "- FFmpeg: $FFMPEG_OK"
-            echo "- Remotion: $REMOTION_OK"
-            echo "- HyperFrames: $HYPERFRAMES_OK"
+            echo "- FFmpeg available: $FFMPEG_OK"
+            echo "- Remotion dependencies present: $REMOTION_OK"
+            echo "- HyperFrames doctor: $HYPERFRAMES_DOCTOR_STATUS"
+            echo "- HyperFrames doctor exit code: $HYPERFRAMES_DOCTOR_EXIT"
+            echo "- HyperFrames doctor JSON ok: $HYPERFRAMES_DOCTOR_OK"
+            echo
+            echo "A HyperFrames doctor status of reported_issues means its own JSON report has ok=false; inspect individual checks to distinguish required runtime blockers from optional integrations."
             echo
             echo "This job only checks runtime availability. It does not import project media, create edit decisions, write approval checkpoints, or render video."
           } | tee "$REPORT" >> "$GITHUB_STEP_SUMMARY"
@@ -93,7 +124,9 @@ jobs:
             echo "Node.js: $(node --version)"
             echo "FFmpeg: $FFMPEG_OK"
             echo "Remotion: $REMOTION_OK"
-            echo "HyperFrames: $HYPERFRAMES_OK"
+            echo "HyperFrames doctor status: $HYPERFRAMES_DOCTOR_STATUS"
+            echo "HyperFrames doctor exit code: $HYPERFRAMES_DOCTOR_EXIT"
+            echo "HyperFrames doctor JSON ok: $HYPERFRAMES_DOCTOR_OK"
           } >> "$REPORT"
 
           mkdir -p "$RUNNER_TEMP/runtime-preflight"

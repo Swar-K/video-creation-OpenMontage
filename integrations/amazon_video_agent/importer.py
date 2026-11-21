@@ -22,6 +22,7 @@ except ImportError as exc:
     raise SystemExit("PyYAML is required; install the OpenMontage requirements first.") from exc
 
 from lib.checkpoint import init_project
+from schemas.artifacts import validate_artifact
 
 MEDIA_TYPES = {
     ".jpg": "image", ".jpeg": "image", ".png": "image", ".webp": "image",
@@ -250,14 +251,18 @@ def import_project(
         },
     }
     payloads = {
-        "brief.json": brief,
-        "script.json": script_artifact,
-        "scene_plan.json": {"version": "1.0", "style_playbook": "clean-professional", "scenes": scene_plan,
-                            "metadata": {"source": "amazon_video_agent"}},
-        "asset_manifest.json": manifest,
+        "brief": brief,
+        "script": script_artifact,
+        "scene_plan": {"version": "1.0", "style_playbook": "clean-professional", "scenes": scene_plan,
+                       "metadata": {"source": "amazon_video_agent"}},
+        "asset_manifest": manifest,
     }
-    for name, payload in payloads.items():
-        (artifacts_dir / name).write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    for artifact_name, payload in payloads.items():
+        validate_artifact(artifact_name, payload)
+    for artifact_name, payload in payloads.items():
+        (artifacts_dir / f"{artifact_name}.json").write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
     (project_dir / "amazon_source").symlink_to(source, target_is_directory=True)
     return project_dir
 

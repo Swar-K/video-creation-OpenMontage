@@ -216,6 +216,22 @@
         "approved_at": "2026-11-21",
         "scope": "Scene-plan checkpoint only. Assets, edit, and compose remain separately gated."
       }
+    },
+    {
+      "decision_id": "d-009",
+      "stage": "assets",
+      "category": "assets_approval",
+      "subject": "C1 preview source stills and composition treatments",
+      "selected": "approved_as_presented",
+      "reason": "User explicitly approved the assets checkpoint covering the two supplied stills, planned scene usage, crops, restrained motion, and approved-script overlays.",
+      "user_visible": true,
+      "user_approved": true,
+      "confidence": 1,
+      "user_approval_scope": {
+        "approved_by_user": true,
+        "approved_at": "2026-11-21",
+        "scope": "Assets checkpoint only. Edit and compose follow their own pipeline controls."
+      }
     }
   ]
 }

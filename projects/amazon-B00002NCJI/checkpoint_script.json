@@ -1,0 +1,106 @@
+{
+  "version": "1.0",
+  "project_id": "amazon-B00002NCJI",
+  "pipeline_type": "hybrid",
+  "stage": "script",
+  "status": "awaiting_human",
+  "timestamp": "2026-11-21T12:30:00Z",
+  "style_playbook": "clean-professional",
+  "checkpoint_policy": "guided",
+  "human_approval_required": true,
+  "human_approved": false,
+  "artifacts": {
+    "script": {
+      "version": "1.0",
+      "title": "A Warmer Window, Without Replacing It",
+      "total_duration_seconds": 15,
+      "sections": [
+        {
+          "id": "v01",
+          "label": "hook",
+          "text": "Drafty windows?",
+          "start_seconds": 0,
+          "end_seconds": 2.5,
+          "source_ref": "C1 approved concept; opening question is a creative hook, not a product-performance claim."
+        },
+        {
+          "id": "v02",
+          "label": "product_reveal",
+          "text": "3M Indoor Window Insulator Kit",
+          "start_seconds": 2.5,
+          "end_seconds": 6,
+          "source_ref": "facts.yaml: product_name and brand."
+        },
+        {
+          "id": "v03",
+          "label": "fit_check",
+          "text": "Five film sheets for indoor windows up to 3 ft × 5 ft each.",
+          "start_seconds": 6,
+          "end_seconds": 10.5,
+          "source_ref": "facts.yaml: manufacturer_claims and specs."
+        },
+        {
+          "id": "v04",
+          "label": "limitation",
+          "text": "A seasonal option—not a repair for failed seals or damaged frames.",
+          "start_seconds": 10.5,
+          "end_seconds": 13,
+          "source_ref": "facts.yaml: hands_on_notes, cons, and not_for."
+        },
+        {
+          "id": "v05",
+          "label": "cta",
+          "text": "Measure your windows before choosing.",
+          "start_seconds": 13,
+          "end_seconds": 15,
+          "source_ref": "facts.yaml: hands_on_notes; buyer-fit CTA from approved C1 concept."
+        }
+      ],
+      "metadata": {
+        "source": "openmontage_hybrid_script_stage",
+        "approved_concept_id": "c1",
+        "delivery_mode": "silent_visual_only",
+        "on_screen_text_only": true,
+        "voice_enabled": false,
+        "music_enabled": false,
+        "sound_effects_enabled": false,
+        "target_platform": "youtube",
+        "aspect_ratio": "16:9",
+        "preview_only": true,
+        "visual_asset_direction": [
+          "Use existing assets/images/product_image_11.jpg for the window context.",
+          "Use existing assets/images/product_image_21.jpg for the kit/contents reveal.",
+          "Use existing product stills only; no generated or external assets."
+        ],
+        "supersedes_imported_narration_for_preview": true,
+        "note": "The imported 271.064-second narration is retained as source material but is not the script for the approved 15-second silent C1 preview."
+      }
+    }
+  },
+  "review": {
+    "findings": [
+      "The imported source narration is 271.064 seconds and does not match the approved 15-second silent visual-only preview; this checkpoint supplies a preview-specific script.",
+      "The imported narration contains unnatural keyword insertions such as 'stop drafts in house' and 'quick fix home energy efficiency'; these are excluded from the preview.",
+      "The source script says the kit includes a 'drying tool', but the supplied facts do not verify that item; the claim is excluded.",
+      "Product performance is phrased cautiously and tied to the supplied facts. No guaranteed energy savings or firsthand testing is claimed.",
+      "No voice, music, sound effects, paid APIs, or newly generated assets are included."
+    ],
+    "unresolved_for_later_gates": [
+      "Scene-plan review must align visuals to this 15-second script and C1 concept.",
+      "Assets review must verify that every planned visual uses existing supplied stills; the imported scene plan currently references three generated mood scenes without corresponding imported files."
+    ]
+  },
+  "cost_snapshot": {
+    "total_spent_usd": 0,
+    "total_reserved_usd": 0,
+    "budget_remaining_usd": 0
+  },
+  "metadata": {
+    "source_review_package_artifact_id": 14706772445,
+    "source_review_package_name": "amazon-video-agent-project-review",
+    "source_review_package_verified": true,
+    "imported_media_count": 9,
+    "narration_imported": false,
+    "note": "Awaiting human approval of the 15-second silent visual-only script. Do not proceed to scene_plan until approved."
+  }
+}

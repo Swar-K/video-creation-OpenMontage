@@ -652,6 +652,7 @@ jobs:
           ffmpeg -v error -i "$VIDEO" -f null -
           python - "$PROJECT/renders/native-remotion-preview.ffprobe.json" <<'PY'
           import json, sys
+          from pathlib import Path
           data = json.load(open(sys.argv[1], encoding="utf-8"))
           streams = data.get("streams", [])
           video = [s for s in streams if s.get("codec_type") == "video"]

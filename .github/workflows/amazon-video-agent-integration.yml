@@ -1,0 +1,94 @@
+name: Amazon Video Agent Integration Test
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "integrations/amazon_video_agent/**"
+      - "scripts/import_amazon_video_agent.py"
+      - "tests/integrations/**"
+      - ".github/workflows/amazon-video-agent-integration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: amazon-video-agent-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  import-and-validate:
+    name: Import sample project and validate artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout OpenMontage
+        uses: actions/checkout@v4
+        with:
+          path: openmontage
+
+      - name: Checkout Amazon Video Agent sample
+        uses: actions/checkout@v4
+        with:
+          repository: Swar-K/amazon-video-agent
+          ref: main
+          path: amazon-video-agent
+          # Public source repository; no write token or secrets are needed.
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install minimal importer dependencies
+        run: python -m pip install --upgrade pip PyYAML jsonschema
+
+      - name: Run importer unit tests
+        working-directory: openmontage
+        run: python -m unittest discover -s tests/integrations -p 'test_*.py' -v
+
+      - name: Import sample project into an isolated workspace
+        working-directory: openmontage
+        run: |
+          python scripts/import_amazon_video_agent.py \
+            --amazon-project ../amazon-video-agent/projects/B00002NCJI \
+            --project-id amazon-B00002NCJI-ci \
+            --projects-dir "$RUNNER_TEMP/openmontage-projects" \
+            --media-mode copy
+
+      - name: Verify generated artifacts and approval boundaries
+        working-directory: openmontage
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          project = Path("${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-ci")
+          artifacts = project / "artifacts"
+          required = ("brief.json", "script.json", "scene_plan.json", "asset_manifest.json")
+          for name in required:
+              path = artifacts / name
+              assert path.is_file(), f"Missing artifact: {name}"
+              json.loads(path.read_text(encoding="utf-8"))
+              print(f"Validated JSON file exists: {name}")
+
+          scene_plan = json.loads((artifacts / "scene_plan.json").read_text(encoding="utf-8"))
+          script = json.loads((artifacts / "script.json").read_text(encoding="utf-8"))
+          manifest = json.loads((artifacts / "asset_manifest.json").read_text(encoding="utf-8"))
+          assert scene_plan["scenes"], "Scene plan is empty"
+          assert script["sections"], "Script sections are empty"
+          assert not (artifacts / "edit_decisions.json").exists(), "Importer must not invent edit decisions"
+          print(f"Scenes: {len(scene_plan['scenes'])}")
+          print(f"Script sections: {len(script['sections'])}")
+          print(f"Manifest assets: {len(manifest['assets'])}")
+          print("Approval boundary check: no edit_decisions artifact was created")
+          PY
+
+      - name: Upload imported artifact bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: amazon-video-agent-import-test
+          path: ${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-ci/artifacts/*.json
+          if-no-files-found: error
+          retention-days: 7

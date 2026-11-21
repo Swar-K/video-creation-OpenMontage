@@ -3,12 +3,12 @@
   "project_id": "amazon-B00002NCJI",
   "pipeline_type": "hybrid",
   "stage": "assets",
-  "status": "awaiting_human",
+  "status": "completed",
   "timestamp": "2026-11-21T12:00:00Z",
   "style_playbook": "clean-professional",
   "checkpoint_policy": "guided",
   "human_approval_required": true,
-  "human_approved": false,
+  "human_approved": true,
   "artifacts": {
     "asset_manifest": {
       "version": "1.0",
@@ -67,14 +67,15 @@
     }
   },
   "review": {
-    "status": "awaiting_human",
+    "status": "approved",
     "findings": [
       "The approved five-scene plan requires only two supplied stills: product_image_11.jpg and product_image_21.jpg.",
       "The imported project review package contained nine supplied product images; this C1 plan uses two and leaves the others unused.",
       "The window-context still is assigned to scenes s01 and s04; the product/packaging still is assigned to scenes s02, s03, and s05.",
       "All text overlays are exact approved-script copy; no additional claims, badges, ratings, prices, or warranty statements are introduced.",
       "All crops and restrained motion are to be applied by the approved Remotion composition. No new image files, external assets, generated media, voice, music, or sound effects are proposed.",
-      "No edit decisions or video render have been created."
+      "No edit decisions or video render have been created.",
+      "User explicitly approved the assets selection and treatment checkpoint on 2026-11-21. Approval is limited to this assets checkpoint."
     ],
     "unresolved": [
       "Human approval is required before the assets stage can be marked complete.",
@@ -88,7 +89,8 @@
   },
   "metadata": {
     "scene_plan_checkpoint": "checkpoint_scene_plan.json",
-    "next_step": "Wait for explicit human approval of this assets checkpoint. Do not create edit decisions or render a draft/full composition before approval.",
+    "next_step": "Proceed to edit stage using only the approved scene plan and asset manifest. Preserve the selected Remotion runtime and all zero-cost silent-preview constraints.",
     "approval_scope": "Assets selection and treatment only; edit and compose remain separately controlled."
-  }
+  },
+  "approved_at": "2026-11-21"
 }

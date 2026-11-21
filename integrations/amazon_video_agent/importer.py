@@ -22,6 +22,7 @@ except ImportError as exc:
     raise SystemExit("PyYAML is required; install the OpenMontage requirements first.") from exc
 
 from lib.checkpoint import init_project
+from lib.paths import PROJECTS_DIR
 from schemas.artifacts import validate_artifact
 
 MEDIA_TYPES = {
@@ -110,6 +111,12 @@ def import_project(
     if not source_scenes:
         raise ValueError("No supported [sNN] scene entries found in scenes.md")
     project_id = _validate_project_id(project_id)
+    project_root = projects_dir or PROJECTS_DIR
+    project_dir = project_root / project_id
+    if project_dir.exists():
+        raise FileExistsError(
+            f"OpenMontage project already exists: {project_dir}. Choose a new project-id."
+        )
 
     project_dir = init_project(
         project_id,
@@ -147,8 +154,8 @@ def import_project(
         )]
         scene_id = visual["id"]
         linked_section = f"section-{section['id']}"
-        scene_to_section[scene_id] = linked_section
-        scene_to_section[visual["ref"]] = linked_section
+        scene_to_section[scene_id] = scene_id
+        scene_to_section[visual["ref"]] = scene_id
         ai_clip = source / "assets" / f"ai_{scene_id}.mp4"
         scene_plan.append({
             "id": scene_id,
@@ -236,7 +243,7 @@ def import_project(
             "id": "amazon-narration", "type": "narration",
             "path": target.relative_to(project_dir).as_posix(),
             "source_tool": "amazon_video_agent_import",
-            "scene_id": "section-" + script_sections[0]["id"],
+            "scene_id": source_scenes[0]["id"],
             "format": "wav",
             "duration_seconds": round(voice_duration, 3) if voice_duration else round(total_duration, 3),
             "generation_summary": "Reused existing Amazon narration; no TTS provider or paid API invoked.",

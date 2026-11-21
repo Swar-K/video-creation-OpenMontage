@@ -44,3 +44,37 @@ For independent copies:
   1080x1920 compose target after confirming platform constraints.
 - Landscape and vertical deliverables require separately reviewed framing;
   do not assume a centre crop will preserve product labels and important detail.
+
+## GitHub Actions: any ASIN / project
+
+The **Amazon Video Agent Integration Test** workflow accepts a project folder
+name through the `project_id` input. Use the folder name under
+`Swar-K/amazon-video-agent/projects/` (for example, `B08S3M2HKL`).
+The import, artifact checks, review ZIP, and short FFmpeg smoke render run for
+the selected project. These checks do not require an OpenMontage approval
+package and do not create edit decisions.
+
+Native Remotion rendering is deliberately separate and opt-in:
+
+1. Complete the selected project's idea, script, scene-plan, assets, and edit
+   checkpoints in OpenMontage.
+2. Commit that project's approved files in this repository under
+   `projects/amazon-<project_id>/`, including the five checkpoint JSON files,
+   `decision_log.json`, and the approved `artifacts/scene_plan.json`,
+   `artifacts/asset_manifest.json`, `artifacts/edit_decisions.json`, and
+   `artifacts/proposal_packet.json`.
+3. In GitHub Actions, run **Amazon Video Agent Integration Test** on
+   `main`, enter the project folder name, and set
+   `render_native_preview` to **true**.
+
+The native-render job validates the selected project's own checkpoints,
+approved asset mappings, cut timing, render duration, and Remotion settings.
+It does not assume a fixed ASIN, product image filename, five-scene edit, or
+15-second duration. If the approval package is missing or incomplete, the job
+fails with a list of the exact missing files; it never borrows approvals from
+another ASIN.
+
+Leave `render_native_preview` false for new projects until their own
+downstream approvals and edit decisions are complete. Pull-request validation
+runs import and smoke tests only; it no longer tries to render the original
+sample as a side effect.

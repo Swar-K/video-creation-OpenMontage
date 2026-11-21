@@ -38,7 +38,7 @@ class ImporterParsingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "scenes.md"
             path.write_text(
-                "[s02] type: product | ref: clip.mp4; product_image.jpg | prompt: Existing footage.\\n",
+                "[s02] type: product | ref: clip.mp4; product_image.jpg | prompt: Existing footage.\n",
                 encoding="utf-8",
             )
             scenes = _parse_scenes(path)
@@ -49,7 +49,7 @@ class ImporterParsingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "scenes.md"
             path.write_text(
-                "[s03] type: mood | ref: none | prompt: No source media.\\n",
+                "[s03] type: mood | ref: none | prompt: No source media.\n",
                 encoding="utf-8",
             )
             scenes = _parse_scenes(path)

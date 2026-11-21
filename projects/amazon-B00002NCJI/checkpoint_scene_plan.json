@@ -3,12 +3,12 @@
   "project_id": "amazon-B00002NCJI",
   "pipeline_type": "hybrid",
   "stage": "scene_plan",
-  "status": "awaiting_human",
+  "status": "completed",
   "timestamp": "2026-11-21T12:00:00Z",
   "style_playbook": "clean-professional",
   "checkpoint_policy": "guided",
   "human_approval_required": true,
-  "human_approved": false,
+  "human_approved": true,
   "artifacts": {
     "scene_plan": {
       "version": "1.0",
@@ -221,14 +221,15 @@
     }
   },
   "review": {
-    "status": "awaiting_human",
+    "status": "approved",
     "findings": [
       "The five scenes map directly to approved script sections v01-v05 and cover the complete 15-second runtime.",
       "The plan references only the two existing stills identified in the imported project review: product_image_11.jpg and product_image_21.jpg.",
       "The three unmaterialized mood-scene prompts from the imported scene plan are not used.",
       "Motion is limited to subtle digital pan/zoom on existing stills; no simulated installation or fabricated footage is proposed.",
       "All on-screen copy matches the approved script. No new product-performance, price, rating, review, or warranty claims are added.",
-      "No assets have been generated and no draft or full video has been rendered."
+      "No assets have been generated and no draft or full video has been rendered.",
+      "User explicitly approved the complete five-scene C1 scene plan on 2026-11-21. Approval is limited to the scene-plan checkpoint."
     ],
     "unresolved_for_later_gate": [
       "Assets checkpoint must verify the exact source image files and any final crops/overlays before edit or compose.",
@@ -246,7 +247,8 @@
       "assets/images/product_image_11.jpg",
       "assets/images/product_image_21.jpg"
     ],
-    "next_step": "Wait for explicit human approval of this scene plan. Do not start assets stage before approval.",
-    "approval_scope": "Scene plan only; assets, edit, and compose retain separate stage controls."
-  }
+    "next_step": "Prepare the assets-stage review checkpoint. Do not begin edit or compose until the assets checkpoint is explicitly approved.",
+    "approval_scope": "Scene plan approved only; assets, edit, and compose retain separate stage controls."
+  },
+  "approved_at": "2026-11-21"
 }

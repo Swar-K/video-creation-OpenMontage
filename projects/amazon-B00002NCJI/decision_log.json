@@ -28,10 +28,19 @@
         }
       ],
       "selected": "c1",
-      "reason": "Agent recommendation only; pending user selection.",
+      "reason": "User explicitly approved all three concepts (C1, C2, and C3) as retained creative directions and confirmed C1 as the first preview to render.",
       "user_visible": true,
-      "user_approved": false,
-      "confidence": 0.88
+      "user_approved": true,
+      "confidence": 0.88,
+      "user_approval_scope": {
+        "approved_concepts": [
+          "c1",
+          "c2",
+          "c3"
+        ],
+        "first_preview": "c1",
+        "approved_at": "2026-11-21"
+      }
     },
     {
       "decision_id": "d-002",

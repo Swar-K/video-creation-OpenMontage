@@ -33,6 +33,28 @@ class ImporterParsingTests(unittest.TestCase):
         self.assertEqual(scenes[0]["ref"], "product_image_11.jpg")
         self.assertEqual(scenes[0]["prompt"], "Slow camera push.")
 
+
+    def test_parse_multiple_existing_scene_assets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "scenes.md"
+            path.write_text(
+                "[s02] type: product | ref: clip.mp4; product_image.jpg | prompt: Existing footage.\\n",
+                encoding="utf-8",
+            )
+            scenes = _parse_scenes(path)
+        self.assertEqual(scenes[0]["ref"], "clip.mp4")
+        self.assertEqual(scenes[0]["refs"], ["clip.mp4", "product_image.jpg"])
+
+    def test_parse_scene_without_reference(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "scenes.md"
+            path.write_text(
+                "[s03] type: mood | ref: none | prompt: No source media.\\n",
+                encoding="utf-8",
+            )
+            scenes = _parse_scenes(path)
+        self.assertEqual(scenes[0]["refs"], [])
+
     def test_rejects_path_traversal_project_id(self):
         with self.assertRaises(ValueError):
             _validate_project_id("../outside")

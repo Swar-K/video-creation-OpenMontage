@@ -1,0 +1,274 @@
+#!/usr/bin/env python3
+"""Import an Amazon Video Agent project into a native OpenMontage hybrid workspace.
+
+The source project is never modified. Media is symlinked by default so large
+video files are not duplicated. This adapter creates seed artifacts only; it
+does not fabricate edit decisions or bypass OpenMontage approval checkpoints.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import shutil
+import sys
+import wave
+from pathlib import Path
+from typing import Any
+
+try:
+    import yaml
+except ImportError as exc:
+    raise SystemExit("PyYAML is required; install the OpenMontage requirements first.") from exc
+
+from lib.checkpoint import init_project
+
+MEDIA_TYPES = {
+    ".jpg": "image", ".jpeg": "image", ".png": "image", ".webp": "image",
+    ".mp4": "video", ".mov": "video", ".m4v": "video",
+    ".wav": "audio", ".mp3": "audio", ".m4a": "audio",
+}
+SCENE_RE = re.compile(
+    r"^\[(?P<id>s\d+)\]\s+type:\s*(?P<type>[^|]+)\|\s*ref:\s*(?P<ref>[^|]+)\|\s*prompt:\s*(?P<prompt>.*)$"
+)
+SCRIPT_RE = re.compile(r"^\[(?P<id>[^\]]+)\]\s*(?P<body>.*)$")
+META_RE = re.compile(r"\s*\|\s*(?:assets|product|callout|p)\s*:", re.IGNORECASE)
+
+
+def _read_yaml(path: Path) -> dict[str, Any]:
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(f"{path} must contain a YAML mapping")
+    return data
+
+
+def _parse_scenes(path: Path) -> list[dict[str, str]]:
+    result = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        match = SCENE_RE.match(line.strip())
+        if match:
+            result.append({key: value.strip() for key, value in match.groupdict().items()})
+    return result
+
+
+def _parse_script(path: Path) -> tuple[str, list[dict[str, str]]]:
+    title, label = "", "main"
+    sections = []
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if line.startswith("# TITLE:"):
+            title = line.partition(":")[2].strip()
+            continue
+        if line.startswith("## "):
+            label = re.sub(r"[^a-zA-Z0-9_-]+", "-", line[3:].strip()).strip("-").lower() or "main"
+            continue
+        match = SCRIPT_RE.match(line)
+        if not match:
+            continue
+        body = META_RE.split(match.group("body").strip(), maxsplit=1)[0].strip()
+        if body:
+            sections.append({"id": match.group("id").strip(), "label": label, "text": body})
+    if not sections:
+        raise ValueError(f"No narration lines found in {path}")
+    return title or path.parent.name, sections
+
+
+def _wav_duration(path: Path) -> float | None:
+    if not path.is_file() or path.suffix.lower() != ".wav":
+        return None
+    try:
+        with wave.open(str(path), "rb") as audio:
+            return audio.getnframes() / audio.getframerate()
+    except (wave.Error, OSError, ZeroDivisionError):
+        return None
+
+
+def _validate_project_id(value: str) -> str:
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{2,59}", value):
+        raise ValueError("project-id must be 3-60 safe letters, digits, hyphens, or underscores")
+    return value
+
+
+def import_project(
+    amazon_project: Path,
+    project_id: str,
+    *,
+    projects_dir: Path | None = None,
+    media_mode: str = "symlink",
+) -> Path:
+    source = amazon_project.expanduser().resolve()
+    if not source.is_dir():
+        raise FileNotFoundError(f"Amazon project directory not found: {source}")
+    for name in ("facts.yaml", "script.md", "scenes.md"):
+        if not (source / name).is_file():
+            raise FileNotFoundError(f"Required source file missing: {source / name}")
+
+    facts = _read_yaml(source / "facts.yaml")
+    title, source_sections = _parse_script(source / "script.md")
+    source_scenes = _parse_scenes(source / "scenes.md")
+    if not source_scenes:
+        raise ValueError("No supported [sNN] scene entries found in scenes.md")
+    project_id = _validate_project_id(project_id)
+
+    project_dir = init_project(
+        project_id,
+        title=str(facts.get("product_name") or title),
+        pipeline_type="hybrid",
+        pipeline_dir=projects_dir,
+        style_playbook="clean-professional",
+    )
+    artifacts_dir = project_dir / "artifacts"
+    artifact_names = ("brief.json", "script.json", "scene_plan.json", "asset_manifest.json")
+    collisions = [name for name in artifact_names if (artifacts_dir / name).exists()]
+    if collisions:
+        raise FileExistsError("Refusing to overwrite existing artifacts: " + ", ".join(collisions))
+
+    voice_source = source / "out" / "voice.wav"
+    voice_duration = _wav_duration(voice_source)
+    weights = [max(1, len(item["text"].split())) for item in source_sections]
+    total_duration = voice_duration or max(1.0, sum(weights) / 2.35)
+    cursor = 0.0
+    script_sections = []
+    for index, item in enumerate(source_sections):
+        end = total_duration if index == len(source_sections) - 1 else cursor + total_duration * weights[index] / sum(weights)
+        script_sections.append({
+            "id": item["id"], "label": item["label"], "text": item["text"],
+            "start_seconds": round(cursor, 3), "end_seconds": round(max(cursor + 0.01, end), 3),
+        })
+        cursor = end
+
+    scene_plan = []
+    scene_to_section = {}
+    for index, section in enumerate(script_sections):
+        visual = source_scenes[index % len(source_scenes)]
+        scene_id = f"section-{section['id']}"
+        scene_to_section[visual["id"]] = scene_id
+        scene_to_section[visual["ref"]] = scene_id
+        scene_plan.append({
+            "id": scene_id,
+            "type": "broll" if visual["type"].lower() == "mood" else "generated",
+            "description": f"Narration: {section['text']} Visual direction: {visual['prompt']}",
+            "start_seconds": section["start_seconds"],
+            "end_seconds": section["end_seconds"],
+            "script_section_id": section["id"],
+            "framing": "Reframe deliberately for each approved aspect ratio; keep product details and text in safe areas.",
+            "movement": "Retain source clip movement or apply restrained motion to still imagery.",
+            "shot_intent": f"Support the {section['label']} narration beat.",
+            "information_role": section["label"],
+            "required_assets": [{
+                "type": "video" if (source / "assets" / f"ai_{visual['id']}.mp4").is_file() else "image",
+                "description": visual["ref"] if visual["ref"].lower() != "none" else visual["prompt"],
+                "source": "provided" if visual["ref"].lower() != "none" else "generate",
+            }],
+        })
+
+    brief = {
+        "version": "1.0",
+        "title": str(facts.get("product_name") or title),
+        "hook": script_sections[0]["text"],
+        "key_points": [str(x) for x in facts.get("manufacturer_claims", [])[:8]] or [x["text"] for x in script_sections[:5]],
+        "core_message": f"Help viewers evaluate {facts.get('product_name') or title} using the supplied product facts and limitations.",
+        "cta": script_sections[-1]["text"],
+        "tone": "clear, practical, evidence-led product explanation",
+        "style": "clean-professional",
+        "target_audience": str(facts.get("audience") or "General audience"),
+        "target_platform": "youtube",
+        "target_duration_seconds": round(total_duration, 3),
+        "reference_material": ["amazon_source/facts.yaml", "amazon_source/script.md", "amazon_source/scenes.md"],
+        "selected_angle": str(facts.get("angle") or "product overview"),
+        "metadata": {"source": "amazon_video_agent", "asin": str(facts.get("asin") or source.name)},
+    }
+    script_artifact = {
+        "version": "1.0", "title": title,
+        "total_duration_seconds": round(total_duration, 3),
+        "sections": script_sections,
+        "metadata": {"source": "amazon_video_agent"},
+    }
+
+    media_source = source / "assets"
+    if not media_source.is_dir():
+        raise FileNotFoundError(f"Amazon assets directory missing: {media_source}")
+    media_target = project_dir / "assets"
+    manifest_assets = []
+    for media in sorted(media_source.iterdir()):
+        media_type = MEDIA_TYPES.get(media.suffix.lower())
+        if not media.is_file() or not media_type:
+            continue
+        target = media_target / media.name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists() or target.is_symlink():
+            raise FileExistsError(f"Asset target already exists: {target}")
+        if media_mode == "symlink":
+            target.symlink_to(media.resolve())
+        else:
+            shutil.copy2(media, target)
+        manifest_assets.append({
+            "id": re.sub(r"[^A-Za-z0-9_-]+", "-", media.stem).strip("-").lower(),
+            "type": media_type, "path": target.relative_to(project_dir).as_posix(),
+            "source_tool": "amazon_video_agent_import",
+            "scene_id": scene_to_section.get(media.name, "section-" + script_sections[0]["id"]),
+            "format": media.suffix.lower().lstrip("."),
+            "subtype": "product_source" if media.name.startswith("product_image_") else "imported_media",
+            "generation_summary": "Imported from the Amazon Video Agent project; original file retained.",
+        })
+
+    if voice_source.is_file():
+        target = media_target / "audio" / voice_source.name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if media_mode == "symlink":
+            target.symlink_to(voice_source.resolve())
+        else:
+            shutil.copy2(voice_source, target)
+        manifest_assets.append({
+            "id": "amazon-narration", "type": "narration",
+            "path": target.relative_to(project_dir).as_posix(),
+            "source_tool": "amazon_video_agent_import",
+            "scene_id": "section-" + script_sections[0]["id"],
+            "format": "wav",
+            "duration_seconds": round(voice_duration, 3) if voice_duration else round(total_duration, 3),
+            "generation_summary": "Reused existing Amazon narration; no TTS provider or paid API invoked.",
+        })
+
+    manifest = {
+        "version": "1.0", "assets": manifest_assets,
+        "metadata": {
+            "source": "amazon_video_agent", "media_mode": media_mode,
+            "narration_imported": voice_source.is_file(),
+            "note": "Importer intentionally does not create edit decisions or mark gated stages approved.",
+        },
+    }
+    payloads = {
+        "brief.json": brief,
+        "script.json": script_artifact,
+        "scene_plan.json": {"version": "1.0", "style_playbook": "clean-professional", "scenes": scene_plan,
+                            "metadata": {"source": "amazon_video_agent"}},
+        "asset_manifest.json": manifest,
+    }
+    for name, payload in payloads.items():
+        (artifacts_dir / name).write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (project_dir / "amazon_source").symlink_to(source, target_is_directory=True)
+    return project_dir
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--amazon-project", required=True, type=Path)
+    parser.add_argument("--project-id", required=True)
+    parser.add_argument("--projects-dir", type=Path, default=None)
+    parser.add_argument("--media-mode", choices=("symlink", "copy"), default="symlink")
+    args = parser.parse_args(argv)
+    try:
+        project = import_project(args.amazon_project, args.project_id, projects_dir=args.projects_dir, media_mode=args.media_mode)
+    except (FileNotFoundError, FileExistsError, ValueError, OSError) as exc:
+        print(f"Import failed: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps({
+        "success": True, "project_dir": str(project),
+        "artifacts": [f"artifacts/{name}" for name in ("brief.json", "script.json", "scene_plan.json", "asset_manifest.json")],
+        "next_step": "Review imported artifacts, then continue through OpenMontage's hybrid approval/checkpoint workflow.",
+    }, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

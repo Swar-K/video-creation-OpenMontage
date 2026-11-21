@@ -3,12 +3,12 @@
   "project_id": "amazon-B00002NCJI",
   "pipeline_type": "hybrid",
   "stage": "script",
-  "status": "awaiting_human",
+  "status": "completed",
   "timestamp": "2026-11-21T12:30:00Z",
   "style_playbook": "clean-professional",
   "checkpoint_policy": "guided",
   "human_approval_required": true,
-  "human_approved": false,
+  "human_approved": true,
   "artifacts": {
     "script": {
       "version": "1.0",
@@ -83,7 +83,8 @@
       "The imported narration contains unnatural keyword insertions such as 'stop drafts in house' and 'quick fix home energy efficiency'; these are excluded from the preview.",
       "The source script says the kit includes a 'drying tool', but the supplied facts do not verify that item; the claim is excluded.",
       "Product performance is phrased cautiously and tied to the supplied facts. No guaranteed energy savings or firsthand testing is claimed.",
-      "No voice, music, sound effects, paid APIs, or newly generated assets are included."
+      "No voice, music, sound effects, paid APIs, or newly generated assets are included.",
+      "User explicitly approved the complete 15-second silent visual-only C1 script on 2026-11-21."
     ],
     "unresolved_for_later_gates": [
       "Scene-plan review must align visuals to this 15-second script and C1 concept.",
@@ -101,6 +102,7 @@
     "source_review_package_verified": true,
     "imported_media_count": 9,
     "narration_imported": false,
-    "note": "Awaiting human approval of the 15-second silent visual-only script. Do not proceed to scene_plan until approved."
-  }
+    "note": "Script checkpoint approved by the user. Proceed to scene_plan stage; create and present its own human-approval checkpoint before any assets-stage work."
+  },
+  "approved_at": "2026-11-21T12:00:00Z"
 }

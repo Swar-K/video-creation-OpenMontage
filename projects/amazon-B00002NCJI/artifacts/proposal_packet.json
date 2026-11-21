@@ -82,7 +82,7 @@
   ],
   "selected_concept": {
     "concept_id": "c1",
-    "rationale": "Recommended starting direction because it gives the clearest product reveal in a short preview and uses the available product stills without requiring generated media. This is an agent recommendation only; the user has not approved the concept.",
+    "rationale": "User approved all three concepts as retained creative directions and selected C1 as the first preview to render. C2 and C3 remain approved alternatives for later content.",
     "modifications": [
       "Silent visual-only preview; no TTS, narration, music, or SFX.",
       "Landscape 16:9; 15-second preview target.",
@@ -227,7 +227,7 @@
   },
   "approval": {
     "status": "pending",
-    "user_notes": "Awaiting user review. No creative approval has been recorded."
+    "user_notes": "Concept decision approved: retain C1, C2, and C3; use C1 for the first 15-second preview. This does not approve the remaining idea-stage decisions (Remotion runtime selection, templated composition mode, and restrained motion), nor does it approve script, scene-plan, assets, edit, or compose stages."
   },
   "metadata": {
     "project_id": "amazon-B00002NCJI",

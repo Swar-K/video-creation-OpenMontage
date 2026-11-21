@@ -148,21 +148,28 @@ def import_project(
     scene_plan = []
     scene_to_section = {}
     for index, visual in enumerate(source_scenes):
-        section = script_sections[min(
+        section_index = min(
             len(script_sections) - 1,
             round(index * (len(script_sections) - 1) / max(1, len(source_scenes) - 1)),
-        )]
+        )
+        section = script_sections[section_index]
         scene_id = visual["id"]
-        linked_section = f"section-{section['id']}"
         scene_to_section[scene_id] = scene_id
-        scene_to_section[visual["ref"]] = scene_id
+        if visual["ref"].lower() != "none":
+            scene_to_section[visual["ref"]] = scene_id
         ai_clip = source / "assets" / f"ai_{scene_id}.mp4"
+        # scenes.md explicitly describes these as short (~5-second) AI clips.
+        # Anchor each visual beat to its representative narration section;
+        # never stretch a short source clip across an equal share of the full
+        # narration timeline.
+        scene_start = float(section["start_seconds"])
+        scene_end = min(total_duration, scene_start + 5.0)
         scene_plan.append({
             "id": scene_id,
             "type": "broll" if visual["type"].lower() == "mood" else "generated",
             "description": f"Imported Amazon scene prompt: {visual['prompt']}",
-            "start_seconds": round(total_duration * index / len(source_scenes), 3),
-            "end_seconds": round(total_duration * (index + 1) / len(source_scenes), 3),
+            "start_seconds": round(scene_start, 3),
+            "end_seconds": round(max(scene_start + 0.01, scene_end), 3),
             "script_section_id": section["id"],
             "framing": "Reframe deliberately for each approved aspect ratio; keep product details and text in safe areas.",
             "movement": "Retain source clip movement or apply restrained motion to still imagery.",

@@ -1,0 +1,252 @@
+{
+  "version": "1.0",
+  "project_id": "amazon-B00002NCJI",
+  "pipeline_type": "hybrid",
+  "stage": "scene_plan",
+  "status": "awaiting_human",
+  "timestamp": "2026-11-21T12:00:00Z",
+  "style_playbook": "clean-professional",
+  "checkpoint_policy": "guided",
+  "human_approval_required": true,
+  "human_approved": false,
+  "artifacts": {
+    "scene_plan": {
+      "version": "1.0",
+      "style_playbook": "clean-professional",
+      "scenes": [
+        {
+          "id": "s01",
+          "type": "broll",
+          "description": "Open on the existing indoor-window context still (product_image_11.jpg). Use a restrained slow push-in; place the short hook in a clear negative-space area without implying visible damage or a measured draft.",
+          "start_seconds": 0,
+          "end_seconds": 2.5,
+          "script_section_id": "v01",
+          "framing": "16:9 landscape; medium-wide crop of the supplied window-context still, keeping the window recognizable and leaving readable space for the hook.",
+          "movement": "Very slow digital push-in, approximately 3 percent over the shot; no simulated camera parallax.",
+          "transition_in": "Quick clean fade from black, 6 frames.",
+          "transition_out": "Short cross-dissolve into the product reveal.",
+          "overlay_notes": "Exact text: 'Drafty windows?' Large high-contrast sans-serif, one line if safe; keep within title-safe margins.",
+          "shot_language": {
+            "shot_size": "medium_wide",
+            "camera_movement": "dolly_in",
+            "lighting_key": "natural",
+            "depth_of_field": "deep",
+            "color_temperature": "neutral"
+          },
+          "shot_intent": "Establish the viewer's familiar window problem without making a product-performance claim.",
+          "narrative_role": "establish_context",
+          "information_role": "The video is about a seasonal indoor-window insulation option.",
+          "hero_moment": false,
+          "texture_keywords": [
+            "clean",
+            "natural",
+            "minimal"
+          ],
+          "required_assets": [
+            {
+              "type": "image",
+              "description": "Existing supplied assets/images/product_image_11.jpg; no generated or external replacement.",
+              "source": "provided"
+            }
+          ]
+        },
+        {
+          "id": "s02",
+          "type": "broll",
+          "description": "Reveal the 3M Indoor Window Insulator Kit using the existing product/packaging still (product_image_21.jpg). Keep the product identity legible.",
+          "start_seconds": 2.5,
+          "end_seconds": 6,
+          "script_section_id": "v02",
+          "framing": "16:9 landscape; centered product hero crop with sufficient breathing room for a two-line product name.",
+          "movement": "Restrained slow push-in, approximately 2 percent; keep the product package fully inside frame.",
+          "transition_in": "Short cross-dissolve from the window context.",
+          "transition_out": "Clean cut to the product-size detail treatment.",
+          "overlay_notes": "Exact text: '3M Indoor Window Insulator Kit'. Do not add ratings, price, badges, or promotional claims.",
+          "shot_language": {
+            "shot_size": "medium",
+            "camera_movement": "dolly_in",
+            "lighting_key": "natural",
+            "depth_of_field": "deep",
+            "color_temperature": "neutral"
+          },
+          "shot_intent": "Identify the exact product being discussed.",
+          "narrative_role": "introduce_subject",
+          "information_role": "The featured item is the 3M Indoor Window Insulator Kit.",
+          "hero_moment": true,
+          "texture_keywords": [
+            "clean",
+            "product-focused",
+            "minimal"
+          ],
+          "required_assets": [
+            {
+              "type": "image",
+              "description": "Existing supplied assets/images/product_image_21.jpg; product/kit still.",
+              "source": "provided"
+            }
+          ]
+        },
+        {
+          "id": "s03",
+          "type": "broll",
+          "description": "Continue on the same supplied kit still with a controlled crop toward the visible kit contents. Use typography—not fabricated diagrams—to communicate the quantity and maximum intended window dimensions.",
+          "start_seconds": 6,
+          "end_seconds": 10.5,
+          "script_section_id": "v03",
+          "framing": "16:9 landscape; use a slightly tighter crop of product_image_21.jpg while retaining enough of the original package to preserve context.",
+          "movement": "Subtle horizontal pan across the still, no more than 2 percent of frame width.",
+          "transition_in": "Clean cut from the product reveal.",
+          "transition_out": "Brief dissolve to the window-context still.",
+          "overlay_notes": "Exact text: 'Five film sheets' followed by 'For indoor windows up to 3 ft × 5 ft each.' Keep both statements readable; do not imply that every window is compatible.",
+          "shot_language": {
+            "shot_size": "close_up",
+            "camera_movement": "tracking_right",
+            "lighting_key": "natural",
+            "depth_of_field": "deep",
+            "color_temperature": "neutral"
+          },
+          "shot_intent": "Deliver the most useful purchase-fit specification.",
+          "narrative_role": "deliver_payload",
+          "information_role": "The supplied product information specifies five film sheets and an intended indoor-window size up to 3 ft × 5 ft per sheet.",
+          "hero_moment": false,
+          "texture_keywords": [
+            "informational",
+            "clean",
+            "legible"
+          ],
+          "required_assets": [
+            {
+              "type": "image",
+              "description": "Existing supplied assets/images/product_image_21.jpg; reuse the same still with a distinct crop.",
+              "source": "provided"
+            }
+          ]
+        },
+        {
+          "id": "s04",
+          "type": "broll",
+          "description": "Return to the supplied window-context still (product_image_11.jpg) for the limitation statement. Avoid visual effects that suggest the kit repairs a frame, seal, or structural gap.",
+          "start_seconds": 10.5,
+          "end_seconds": 13,
+          "script_section_id": "v04",
+          "framing": "16:9 landscape; stable medium crop of the window-context still with a clean text-safe area.",
+          "movement": "Static image; no motion needed while the limitation is read.",
+          "transition_in": "Brief dissolve from the product detail.",
+          "transition_out": "Clean cut to final buyer-fit prompt.",
+          "overlay_notes": "Exact text: 'A seasonal option—not a repair for failed seals or damaged frames.' Use two or three balanced lines; preserve the em dash and avoid adding extra claims.",
+          "shot_language": {
+            "shot_size": "medium",
+            "camera_movement": "static",
+            "lighting_key": "natural",
+            "depth_of_field": "deep",
+            "color_temperature": "neutral"
+          },
+          "shot_intent": "Set an important boundary so viewers do not mistake the product for a window repair.",
+          "narrative_role": "evidence",
+          "information_role": "The kit does not repair failed seals or damaged frames.",
+          "hero_moment": false,
+          "texture_keywords": [
+            "calm",
+            "clear",
+            "minimal"
+          ],
+          "required_assets": [
+            {
+              "type": "image",
+              "description": "Existing supplied assets/images/product_image_11.jpg; reuse the window-context still.",
+              "source": "provided"
+            }
+          ]
+        },
+        {
+          "id": "s05",
+          "type": "broll",
+          "description": "Close on the supplied product/kit still (product_image_21.jpg), returning to a clear product view while the buyer-fit call to action appears.",
+          "start_seconds": 13,
+          "end_seconds": 15,
+          "script_section_id": "v05",
+          "framing": "16:9 landscape; clean product crop with centered, high-contrast CTA and comfortable safe margins.",
+          "movement": "Very subtle 2 percent push-in, ending before the cut.",
+          "transition_in": "Clean cut from the limitation card.",
+          "transition_out": "Fade to black over the final 5 frames.",
+          "overlay_notes": "Exact text: 'Measure your windows before choosing.' No button graphic, price, urgency language, or unverified listing details.",
+          "shot_language": {
+            "shot_size": "medium",
+            "camera_movement": "dolly_in",
+            "lighting_key": "natural",
+            "depth_of_field": "deep",
+            "color_temperature": "neutral"
+          },
+          "shot_intent": "Give the viewer a practical next step before considering the product.",
+          "narrative_role": "call_to_action",
+          "information_role": "Measure the intended indoor windows before deciding whether the kit fits.",
+          "hero_moment": false,
+          "texture_keywords": [
+            "clean",
+            "decisive",
+            "minimal"
+          ],
+          "required_assets": [
+            {
+              "type": "image",
+              "description": "Existing supplied assets/images/product_image_21.jpg; reuse the product/kit still.",
+              "source": "provided"
+            }
+          ]
+        }
+      ],
+      "metadata": {
+        "project_id": "amazon-B00002NCJI",
+        "concept_id": "c1",
+        "total_duration_seconds": 15,
+        "aspect_ratio": "16:9",
+        "delivery_mode": "silent_visual_only",
+        "voice_enabled": false,
+        "music_enabled": false,
+        "sound_effects_enabled": false,
+        "render_runtime": "remotion",
+        "composition_mode": "templated",
+        "motion_profile": "restrained_still_motion",
+        "source_asset_policy": "existing_supplied_stills_only",
+        "external_assets_allowed": false,
+        "generated_assets_allowed": false,
+        "script_checkpoint": "checkpoint_script.json",
+        "notes": [
+          "Every scene maps one-to-one to an approved script section and preserves the approved timings.",
+          "Only product_image_11.jpg and product_image_21.jpg are referenced; no missing mood clips or generated media are assumed.",
+          "All text overlays reproduce the approved script verbatim.",
+          "No render, edit decisions, TTS, music, SFX, paid API, or asset generation is part of this scene-plan stage."
+        ]
+      }
+    }
+  },
+  "review": {
+    "status": "awaiting_human",
+    "findings": [
+      "The five scenes map directly to approved script sections v01-v05 and cover the complete 15-second runtime.",
+      "The plan references only the two existing stills identified in the imported project review: product_image_11.jpg and product_image_21.jpg.",
+      "The three unmaterialized mood-scene prompts from the imported scene plan are not used.",
+      "Motion is limited to subtle digital pan/zoom on existing stills; no simulated installation or fabricated footage is proposed.",
+      "All on-screen copy matches the approved script. No new product-performance, price, rating, review, or warranty claims are added.",
+      "No assets have been generated and no draft or full video has been rendered."
+    ],
+    "unresolved_for_later_gate": [
+      "Assets checkpoint must verify the exact source image files and any final crops/overlays before edit or compose.",
+      "The native Remotion render remains unproven; this checkpoint is a storyboard/scene-plan review only."
+    ]
+  },
+  "cost_snapshot": {
+    "total_spent_usd": 0,
+    "total_reserved_usd": 0,
+    "budget_remaining_usd": 0
+  },
+  "metadata": {
+    "script_checkpoint": "checkpoint_script.json",
+    "source_images": [
+      "assets/images/product_image_11.jpg",
+      "assets/images/product_image_21.jpg"
+    ],
+    "next_step": "Wait for explicit human approval of this scene plan. Do not start assets stage before approval.",
+    "approval_scope": "Scene plan only; assets, edit, and compose retain separate stage controls."
+  }
+}

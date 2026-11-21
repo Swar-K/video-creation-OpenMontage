@@ -141,7 +141,7 @@
       ],
       "selected_concept": {
         "concept_id": "c1",
-        "rationale": "Recommended starting direction because it gives the clearest product reveal in a short preview and uses the available product stills without requiring generated media. This is an agent recommendation only; the user has not approved the concept.",
+        "rationale": "User approved all three concepts as retained creative directions and selected C1 as the first preview to render. C2 and C3 remain approved alternatives for later content.",
         "modifications": [
           "Silent visual-only preview; no TTS, narration, music, or SFX.",
           "Landscape 16:9; 15-second preview target.",
@@ -286,7 +286,7 @@
       },
       "approval": {
         "status": "pending",
-        "user_notes": "Awaiting user review. No creative approval has been recorded."
+        "user_notes": "Concept decision approved: retain C1, C2, and C3; use C1 for the first 15-second preview. This does not approve the remaining idea-stage decisions (Remotion runtime selection, templated composition mode, and restrained motion), nor does it approve script, scene-plan, assets, edit, or compose stages."
       },
       "metadata": {
         "project_id": "amazon-B00002NCJI",
@@ -338,10 +338,19 @@
             }
           ],
           "selected": "c1",
-          "reason": "Agent recommendation only; pending user selection.",
+          "reason": "User explicitly approved all three concepts (C1, C2, and C3) as retained creative directions and confirmed C1 as the first preview to render.",
           "user_visible": true,
-          "user_approved": false,
-          "confidence": 0.88
+          "user_approved": true,
+          "confidence": 0.88,
+          "user_approval_scope": {
+            "approved_concepts": [
+              "c1",
+              "c2",
+              "c3"
+            ],
+            "first_preview": "c1",
+            "approved_at": "2026-11-21"
+          }
         },
         {
           "decision_id": "d-002",
@@ -478,12 +487,13 @@
     }
   },
   "review": {
-    "status": "ready_for_human_review",
+    "status": "partially_approved",
     "findings": [
       "Three distinct concepts are grounded in the source facts and existing project materials.",
       "The source project has product stills; the mood-video prompts are not confirmed generated clips.",
       "No TTS, music, paid APIs, new assets, edit decisions, or render have been invoked.",
-      "Native Remotion rendering remains unverified; only dependency availability has been checked."
+      "Native Remotion rendering remains unverified; only dependency availability has been checked.",
+      "User explicitly approved C1, C2, and C3 as retained concepts and selected C1 for the first preview; runtime, composition-mode, and motion decisions remain pending."
     ]
   },
   "cost_snapshot": {
@@ -496,6 +506,6 @@
     "source_ref": "main",
     "source_project": "projects/B00002NCJI",
     "destination_repository": "Swar-K/video-creation-OpenMontage",
-    "checkpoint_note": "Idea-stage proposal awaiting explicit human approval. Do not proceed to script, scene-plan, assets, edit, or compose until approved."
+    "checkpoint_note": "Concept selection is approved (C1, C2, C3 retained; C1 first preview). Keep the idea checkpoint awaiting human approval until remaining idea-stage decisions are resolved; do not proceed to script, scene-plan, assets, edit, or compose yet."
   }
 }

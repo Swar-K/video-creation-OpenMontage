@@ -54,7 +54,7 @@ jobs:
 
       - name: Import Amazon Video Agent sample project
         run: |
-          python scripts/import_amazon_video_agent.py \
+          .venv/bin/python scripts/import_amazon_video_agent.py \
             --amazon-project amazon-video-agent/projects/B00002NCJI \
             --project-id amazon-B00002NCJI-ci \
             --projects-dir "$RUNNER_TEMP/openmontage-projects" \

@@ -113,10 +113,37 @@ def import_project(
     project_id = _validate_project_id(project_id)
     project_root = projects_dir or PROJECTS_DIR
     project_dir = project_root / project_id
+    artifact_names = ("brief.json", "script.json", "scene_plan.json", "asset_manifest.json")
     if project_dir.exists():
-        raise FileExistsError(
-            f"OpenMontage project already exists: {project_dir}. Choose a new project-id."
-        )
+        # A proposal checkpoint may initialize the canonical workspace before
+        # source media is imported. Resume only that explicitly initialized,
+        # still-empty workspace; never overwrite a prior import or user assets.
+        marker_path = project_dir / "project.json"
+        if not marker_path.is_file():
+            raise FileExistsError(
+                f"OpenMontage project already exists without a resumable project marker: {project_dir}"
+            )
+        try:
+            marker = json.loads(marker_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(f"Existing project marker is unreadable: {marker_path}") from exc
+        if marker.get("project_id") != project_id or marker.get("pipeline_type") != "hybrid":
+            raise ValueError(
+                f"Existing workspace marker does not match project {project_id!r} and pipeline 'hybrid'"
+            )
+        artifacts_dir = project_dir / "artifacts"
+        collisions = [name for name in artifact_names if (artifacts_dir / name).exists()]
+        if collisions or (project_dir / "amazon_source").exists():
+            raise FileExistsError(
+                "Refusing to overwrite an existing import: "
+                + (", ".join(collisions) if collisions else "amazon_source already exists")
+            )
+        for folder in ("images", "video", "audio"):
+            asset_dir = project_dir / "assets" / folder
+            if asset_dir.exists() and any(asset_dir.iterdir()):
+                raise FileExistsError(
+                    f"Refusing to overwrite existing user/imported media in {asset_dir}"
+                )
 
     project_dir = init_project(
         project_id,
@@ -126,7 +153,6 @@ def import_project(
         style_playbook="clean-professional",
     )
     artifacts_dir = project_dir / "artifacts"
-    artifact_names = ("brief.json", "script.json", "scene_plan.json", "asset_manifest.json")
     collisions = [name for name in artifact_names if (artifacts_dir / name).exists()]
     if collisions:
         raise FileExistsError("Refusing to overwrite existing artifacts: " + ", ".join(collisions))

@@ -7,6 +7,7 @@
   "required": ["version", "cuts", "render_runtime"],
   "properties": {
     "version": { "type": "string", "const": "1.0" },
+    "tailPaddingSeconds": { "type": "number", "minimum": 0 },
     "cuts": {
       "type": "array",
       "items": {
@@ -70,13 +71,21 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["asset_id", "start_seconds", "end_seconds", "position"],
+        "required": [],
         "properties": {
+          "type": { "type": "string", "enum": ["section_title", "stat_reveal", "hero_title", "provider_chip"] },
+          "in_seconds": { "type": "number", "minimum": 0 },
+          "out_seconds": { "type": "number", "minimum": 0 },
+          "text": { "type": "string" },
+          "subtitle": { "type": "string" },
+          "accentColor": { "type": "string" },
           "asset_id": { "type": "string" },
           "start_seconds": { "type": "number", "minimum": 0 },
           "end_seconds": { "type": "number", "minimum": 0 },
           "position": {
-            "type": "object",
+            "oneOf": [
+              { "type": "string", "enum": ["top-left", "bottom-left", "center", "top-center", "bottom-center"] },
+              { "type": "object",
             "properties": {
               "x": { "type": "number" },
               "y": { "type": "number" },
@@ -84,6 +93,8 @@
               "height": { "type": "number" }
             },
             "required": ["x", "y"]
+              }
+            ]
           },
           "animation": { "type": "string" },
           "opacity": { "type": "number", "minimum": 0, "maximum": 1 }

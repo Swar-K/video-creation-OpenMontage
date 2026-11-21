@@ -24,6 +24,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Checkout Amazon Video Agent sample
+        uses: actions/checkout@v4
+        with:
+          repository: Swar-K/amazon-video-agent
+          ref: main
+          path: amazon-video-agent
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -44,3 +51,43 @@ jobs:
 
       - name: Run test suite
         run: make test
+
+      - name: Import Amazon Video Agent sample project
+        run: |
+          .venv/bin/python scripts/import_amazon_video_agent.py \
+            --amazon-project amazon-video-agent/projects/B00002NCJI \
+            --project-id amazon-B00002NCJI-ci \
+            --projects-dir "$RUNNER_TEMP/openmontage-projects" \
+            --media-mode copy
+
+      - name: Verify imported artifacts and approval boundaries
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          project = Path("${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-ci")
+          artifacts = project / "artifacts"
+          required = ("brief.json", "script.json", "scene_plan.json", "asset_manifest.json")
+          for name in required:
+              path = artifacts / name
+              assert path.is_file(), f"Missing artifact: {name}"
+              json.loads(path.read_text(encoding="utf-8"))
+              print(f"Artifact present and valid JSON: {name}")
+
+          scene_plan = json.loads((artifacts / "scene_plan.json").read_text(encoding="utf-8"))
+          script = json.loads((artifacts / "script.json").read_text(encoding="utf-8"))
+          assert scene_plan["scenes"], "Scene plan is empty"
+          assert script["sections"], "Script sections are empty"
+          assert not (artifacts / "edit_decisions.json").exists(), "Importer must not invent edit decisions"
+          print(f"Scenes: {len(scene_plan['scenes'])}; script sections: {len(script['sections'])}")
+          print("Approval boundary check passed")
+          PY
+
+      - name: Upload imported artifact bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: amazon-video-agent-import-test
+          path: ${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-ci/artifacts/*.json
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,113 @@
+{
+  "version": "1.0",
+  "project_id": "amazon-B08S3M2HKL",
+  "pipeline_type": "hybrid",
+  "stage": "assets",
+  "status": "completed",
+  "timestamp": "2026-11-22",
+  "style_playbook": "clean-professional",
+  "checkpoint_policy": "guided",
+  "human_approval_required": true,
+  "human_approved": true,
+  "artifacts": {
+    "asset_manifest": {
+      "version": "1.0",
+      "project_id": "amazon-B08S3M2HKL",
+      "source_policy": "existing_supplied_video_only",
+      "external_assets_allowed": false,
+      "generated_assets_allowed": false,
+      "assets": [
+        {
+          "asset_id": "a01",
+          "type": "video",
+          "source": "provided",
+          "path": "assets/video/2026-10-23 17-27-34 - Trim8.mp4",
+          "planned_usage": [
+            "s01"
+          ],
+          "role": "Door-bottom context footage; shows the gap before the strip is applied.",
+          "transformations": {
+            "aspect_ratio": "16:9",
+            "crop": "Keep the door bottom and floor gap visible; avoid cropping out the seam."
+          }
+        },
+        {
+          "asset_id": "a02",
+          "type": "video",
+          "source": "provided",
+          "path": "assets/video/2026-10-23 17-27-34 - Trim.mp4",
+          "planned_usage": [
+            "s02"
+          ],
+          "role": "Product package and three-roll reveal.",
+          "transformations": {
+            "aspect_ratio": "16:9",
+            "crop": "Keep product name and roll package inside frame."
+          }
+        },
+        {
+          "asset_id": "a03",
+          "type": "video",
+          "source": "provided",
+          "path": "assets/video/2026-10-23 17-27-34 - Trim5.mp4",
+          "planned_usage": [
+            "s03"
+          ],
+          "role": "Close-up of the clear strip being pulled from the roll.",
+          "transformations": {
+            "aspect_ratio": "16:9",
+            "crop": "Keep the clear strip and hands in view."
+          }
+        },
+        {
+          "asset_id": "a04",
+          "type": "video",
+          "source": "provided",
+          "path": "assets/video/2026-10-23 17-27-34 - Trim10.mp4",
+          "planned_usage": [
+            "s04"
+          ],
+          "role": "Footage of the strip being positioned along the bottom of a door.",
+          "transformations": {
+            "aspect_ratio": "16:9",
+            "crop": "Keep the strip and door edge visible."
+          }
+        },
+        {
+          "asset_id": "a05",
+          "type": "video",
+          "source": "provided",
+          "path": "assets/video/2026-10-23 17-27-34 - Trim3.mp4",
+          "planned_usage": [
+            "s05"
+          ],
+          "role": "Closing product/package recap.",
+          "transformations": {
+            "aspect_ratio": "16:9",
+            "crop": "Keep the product package and rolls legible."
+          }
+        }
+      ]
+    }
+  },
+  "review": {
+    "findings": [
+      "Five source clips selected and visually inspected.",
+      "The selected files exist in the imported project assets.",
+      "product_image_61.jpg is deliberately excluded because its 48-foot graphic conflicts with the supplied approximately 49-foot facts."
+    ]
+  },
+  "cost_snapshot": {
+    "total_spent_usd": 0,
+    "total_reserved_usd": 0,
+    "budget_remaining_usd": 0
+  },
+  "metadata": {
+    "scene_plan_checkpoint": "checkpoint_scene_plan.json",
+    "imported_media_count": 18,
+    "selected_media_count": 5,
+    "approval_basis": "User explicitly approved both the review and proceeding to project-specific approval files and native preview.",
+    "preview_only": true
+  },
+  "approved_at": "2026-11-22"
+}

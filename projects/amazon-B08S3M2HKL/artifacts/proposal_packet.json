@@ -7,11 +7,21 @@
       "hook": "Cold drafts around a door gap?",
       "narrative_structure": "problem_solution",
       "visual_approach": "A 15-second source-led reveal using existing door-gap, package, strip-detail, and application footage.",
+      "suggested_playbook": "clean-professional",
+      "target_audience": "Homeowners and renters considering low-profile weather stripping for suitable small gaps.",
+      "target_platform": "youtube",
       "target_duration_seconds": 15,
       "key_points": [
-        "Three rolls; approximately 49 feet total, according to supplied facts.",
+        "Three rolls; approximately 49 feet total, according to supplied product facts.",
         "Adhesive-backed transparent silicone weather stripping.",
         "Measure first; fit and surface compatibility matter."
+      ],
+      "core_message": "A targeted weather-stripping option for suitable small gaps, not a fix for every opening.",
+      "cta": "Measure first and check the surface compatibility.",
+      "tone": "practical, clear, measured",
+      "grounded_in": [
+        "projects/B08S3M2HKL/facts.yaml product details and specifications",
+        "projects/B08S3M2HKL/facts.yaml installation guidance and limitations"
       ],
       "why_this_works": "Introduces the product and gives a practical buyer-fit qualification without promising performance."
     },
@@ -20,12 +30,22 @@
       "title": "How the Strip Is Intended to Be Applied",
       "hook": "Measure before you apply.",
       "narrative_structure": "tutorial",
-      "visual_approach": "Use existing door-edge and strip footage to illustrate measure, prepare, position, and check-fit steps.",
+      "visual_approach": "Use existing door-edge and strip footage to illustrate measuring, preparing, positioning, and checking fit.",
+      "suggested_playbook": "clean-professional",
+      "target_audience": "DIY-oriented homeowners and renters considering adhesive-backed weather stripping.",
+      "target_platform": "youtube",
       "target_duration_seconds": 15,
       "key_points": [
-        "Check the gap and surface.",
-        "Measure and cut to fit.",
+        "Check the gap and surface before applying.",
+        "Measure and cut the strip to fit.",
         "Check door movement and latch clearance."
+      ],
+      "core_message": "Preparation and fit matter more than simply sticking the strip in place.",
+      "cta": "Follow the product instructions and check the fit before applying.",
+      "tone": "instructional, concise, practical",
+      "grounded_in": [
+        "projects/B08S3M2HKL/facts.yaml installation guidance",
+        "projects/B08S3M2HKL/facts.yaml product limitations"
       ],
       "why_this_works": "A concise installation-oriented alternative, without claiming personal testing."
     },
@@ -33,13 +53,23 @@
       "id": "c3",
       "title": "Is This Weather Stripping Right for Your Gap?",
       "hook": "Not every gap is a match.",
-      "narrative_structure": "buyer_fit",
+      "narrative_structure": "myth_busting",
       "visual_approach": "Use supplied package and application clips with simple limitation-led overlays.",
+      "suggested_playbook": "clean-professional",
+      "target_audience": "Buyers comparing weather-stripping options and trying to avoid a poor fit.",
+      "target_platform": "youtube",
       "target_duration_seconds": 15,
       "key_points": [
         "Designed for suitable small gaps.",
         "Adhesive compatibility and surface preparation matter.",
         "Not a repair for damaged frames or large irregular gaps."
+      ],
+      "core_message": "The right buyer has a suitable gap and compatible surface.",
+      "cta": "Measure the gap and check the surface before choosing.",
+      "tone": "honest, buyer-focused, evidence-led",
+      "grounded_in": [
+        "projects/B08S3M2HKL/facts.yaml cons and not_for",
+        "projects/B08S3M2HKL/facts.yaml installation guidance"
       ],
       "why_this_works": "A buyer-focused qualification angle that emphasizes fit and limitations."
     }
@@ -51,73 +81,115 @@
       "Silent visual-only; no TTS, narration, music, or SFX.",
       "Landscape 16:9; 15-second preview target.",
       "Use five existing supplied MP4 clips only; no generated or external assets.",
-      "Exclude product_image_61.jpg because it states 48 feet while the supplied product facts and package footage state approximately 49 feet."
+      "Exclude product_image_61.jpg because it states 48 feet while supplied product facts and packaging footage state approximately 49 feet."
     ]
   },
   "production_plan": {
     "pipeline": "hybrid",
     "playbook": "clean-professional",
+    "renderer_family": "product-reveal",
     "render_runtime": "remotion",
+    "composition_mode": "templated",
     "stages": [
       {
         "stage": "idea",
         "tools": [
           {
             "tool_name": "Amazon Video Agent importer",
+            "role": "Import the selected ASIN project and its existing source media.",
             "provider": "local repository files",
             "available": true,
             "estimated_cost_usd": 0
           }
-        ]
+        ],
+        "approach": "Use the selected B08S3M2HKL project as the sole source of product facts and media."
       },
       {
         "stage": "script",
         "tools": [
           {
             "tool_name": "OpenMontage script stage",
+            "role": "Prepare concise on-screen text for a silent preview.",
             "provider": "local repository files",
             "available": true,
             "estimated_cost_usd": 0
           }
-        ]
+        ],
+        "approach": "Use a 15-second preview-specific script; do not render the longer imported narration."
       },
       {
         "stage": "scene_plan",
         "tools": [
           {
             "tool_name": "OpenMontage scene planning",
+            "role": "Map each preview beat to a visually reviewed existing clip.",
             "provider": "local repository files",
             "available": true,
             "estimated_cost_usd": 0
           }
-        ]
+        ],
+        "approach": "Five 3-second scenes cover the full preview timeline."
       },
       {
         "stage": "assets",
         "tools": [
           {
             "tool_name": "Existing supplied MP4 footage",
+            "role": "Provide product, strip-detail, and application visuals.",
             "provider": "Amazon Video Agent project assets",
             "available": true,
             "estimated_cost_usd": 0
           }
-        ]
+        ],
+        "approach": "Use five existing MP4 clips only; no generated or external media."
       },
       {
         "stage": "edit",
         "tools": [
           {
             "tool_name": "OpenMontage Remotion composer",
-            "provider": "local repository runtime in GitHub Actions",
+            "role": "Render the approved silent 16:9 preview.",
+            "provider": "GitHub Actions runtime",
             "available": true,
             "estimated_cost_usd": 0
           }
-        ]
+        ],
+        "approach": "Use the templated Remotion composition at 1920x1080, 30 fps, and 15 seconds."
+      }
+    ],
+    "quality_tradeoffs": [
+      {
+        "tradeoff": "Silent preview versus narrated full video",
+        "recommendation": "Render silent visual-only for this integration test.",
+        "quality_impact": "Validates source-video import and native composition without TTS or audio dependencies."
+      }
+    ],
+    "alternative_paths": [
+      {
+        "description": "Existing supplied clips with native Remotion; no paid APIs or generated assets.",
+        "total_cost_usd": 0,
+        "quality_level": "free",
+        "what_changes": "A short preview rather than the full-length narrated video."
       }
     ]
   },
+  "cost_estimate": {
+    "total_estimated_usd": 0,
+    "line_items": [],
+    "budget_verdict": "within_budget",
+    "budget_cap_usd": 0
+  },
   "approval": {
     "status": "approved",
-    "scope": "B08S3M2HKL 15-second silent preview only; not approval of a full-length narrated production video."
+    "user_notes": "Approval is scoped to the B08S3M2HKL 15-second silent preview only; it does not approve a full-length narrated production video."
+  },
+  "metadata": {
+    "project_id": "amazon-B08S3M2HKL",
+    "preview_only": true,
+    "source_policy": "existing_supplied_video_only",
+    "external_assets_allowed": false,
+    "generated_assets_allowed": false,
+    "voice_enabled": false,
+    "music_enabled": false
   }
 }

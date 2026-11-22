@@ -1,0 +1,123 @@
+{
+  "version": "1.0",
+  "tailPaddingSeconds": 0,
+  "cuts": [
+    {
+      "id": "s01",
+      "source": "a01",
+      "in_seconds": 0,
+      "out_seconds": 3,
+      "layer": "primary",
+      "transition_in": "fade",
+      "transition_out": "cut",
+      "transition_duration": 0.15,
+      "reason": "Door-bottom context from existing supplied footage."
+    },
+    {
+      "id": "s02",
+      "source": "a02",
+      "in_seconds": 3,
+      "out_seconds": 6,
+      "layer": "primary",
+      "transition_in": "cut",
+      "transition_out": "cut",
+      "transition_duration": 0.1,
+      "reason": "Product package reveal using existing supplied footage."
+    },
+    {
+      "id": "s03",
+      "source": "a03",
+      "in_seconds": 6,
+      "out_seconds": 9,
+      "layer": "primary",
+      "transition_in": "cut",
+      "transition_out": "cut",
+      "transition_duration": 0.1,
+      "reason": "Clear strip detail; omit conflicting 48-foot product graphic."
+    },
+    {
+      "id": "s04",
+      "source": "a04",
+      "in_seconds": 9,
+      "out_seconds": 12,
+      "layer": "primary",
+      "transition_in": "cut",
+      "transition_out": "cut",
+      "transition_duration": 0.1,
+      "reason": "Application illustration from existing supplied footage only."
+    },
+    {
+      "id": "s05",
+      "source": "a05",
+      "in_seconds": 12,
+      "out_seconds": 15,
+      "layer": "primary",
+      "transition_in": "cut",
+      "transition_out": "fade",
+      "transition_duration": 0.15,
+      "reason": "Closing product recap and buyer-fit reminder."
+    }
+  ],
+  "overlays": [
+    {
+      "type": "section_title",
+      "in_seconds": 0,
+      "out_seconds": 3,
+      "text": "Cold drafts around a door gap?",
+      "position": "center"
+    },
+    {
+      "type": "section_title",
+      "in_seconds": 3,
+      "out_seconds": 6,
+      "text": "Alien Draft Seal",
+      "position": "center"
+    },
+    {
+      "type": "section_title",
+      "in_seconds": 6,
+      "out_seconds": 9,
+      "text": "Three rolls",
+      "subtitle": "Approximately 49 feet total.",
+      "position": "center"
+    },
+    {
+      "type": "section_title",
+      "in_seconds": 9,
+      "out_seconds": 12,
+      "text": "Adhesive-backed silicone strip",
+      "position": "center"
+    },
+    {
+      "type": "section_title",
+      "in_seconds": 12,
+      "out_seconds": 15,
+      "text": "Measure first",
+      "subtitle": "Fit and surface compatibility matter.",
+      "position": "center"
+    }
+  ],
+  "renderer_family": "product-reveal",
+  "render_runtime": "remotion",
+  "composition_mode": "templated",
+  "metadata": {
+    "project_id": "amazon-B08S3M2HKL",
+    "concept_id": "c1",
+    "playbook": "clean-professional",
+    "duration_seconds": 15,
+    "aspect_ratio": "16:9",
+    "fps": 30,
+    "audio": "none",
+    "source_policy": "existing_supplied_video_only",
+    "external_assets_allowed": false,
+    "generated_assets_allowed": false,
+    "voice_enabled": false,
+    "music_enabled": false,
+    "notes": [
+      "Uses five existing supplied MP4 clips only.",
+      "No use of product_image_61.jpg because its 48-foot graphic conflicts with the approximately 49-foot product facts.",
+      "No narration, music, sound effects, paid APIs, or generated media.",
+      "This is a 15-second preview, not the full imported narration video."
+    ]
+  }
+}

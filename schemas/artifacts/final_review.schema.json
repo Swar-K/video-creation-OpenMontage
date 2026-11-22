@@ -66,6 +66,10 @@
           "type": "object",
           "description": "Audio quality verification",
           "properties": {
+            "audio_expected": {
+              "type": "boolean",
+              "description": "Whether the approved deliverable requires an audio stream. False for intentionally silent previews."
+            },
             "narration_present": { "type": "boolean" },
             "music_present": { "type": "boolean" },
             "unexpected_silence": { "type": "boolean" },

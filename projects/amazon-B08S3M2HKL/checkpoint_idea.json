@@ -1,0 +1,244 @@
+{
+  "version": "1.0",
+  "project_id": "amazon-B08S3M2HKL",
+  "pipeline_type": "hybrid",
+  "stage": "idea",
+  "status": "completed",
+  "timestamp": "2026-11-22",
+  "style_playbook": "clean-professional",
+  "checkpoint_policy": "guided",
+  "human_approval_required": true,
+  "human_approved": true,
+  "artifacts": {
+    "brief": {
+      "version": "1.0",
+      "title": "Alien Draft Seal: A Clear Look at a Small-Gap Weather-Stripping Option",
+      "hook": "Cold air around a door gap? Here's a quick look at Alien Draft Seal.",
+      "key_points": [
+        "Alien Draft Seal is an adhesive-backed transparent silicone weather-stripping product.",
+        "The supplied product facts describe three rolls with approximately 49 feet of material in total.",
+        "The footage illustrates the product and application steps; it does not prove draft reduction or energy savings.",
+        "Fit and surface compatibility matter; measure the gap and check the product instructions."
+      ],
+      "core_message": "A concise, source-led product preview that helps viewers understand what Alien Draft Seal is and why fit matters.",
+      "cta": "Measure first and check whether the strip suits the gap and surface.",
+      "tone": "clear, practical, evidence-led",
+      "style": "clean-professional",
+      "target_audience": "US homeowners and renters considering a low-profile option for suitable small gaps around doors or windows.",
+      "target_platform": "youtube",
+      "target_duration_seconds": 15,
+      "reference_material": [
+        "projects/B08S3M2HKL/facts.yaml",
+        "projects/B08S3M2HKL/script.md",
+        "projects/B08S3M2HKL/scenes.md",
+        "B08S3M2HKL-project-review.zip: visually inspected supplied video clips"
+      ],
+      "metadata": {
+        "asin": "B08S3M2HKL",
+        "preview_only": true,
+        "voice_enabled": false,
+        "music_enabled": false,
+        "external_assets_allowed": false,
+        "generated_assets_allowed": false
+      }
+    },
+    "proposal_packet": {
+      "version": "1.0",
+      "concept_options": [
+        {
+          "id": "c1",
+          "title": "A Clear Strip for Suitable Gaps",
+          "hook": "Cold drafts around a door gap?",
+          "narrative_structure": "problem_solution",
+          "visual_approach": "A 15-second source-led reveal using existing door-gap, package, strip-detail, and application footage.",
+          "target_duration_seconds": 15,
+          "key_points": [
+            "Three rolls; approximately 49 feet total, according to supplied facts.",
+            "Adhesive-backed transparent silicone weather stripping.",
+            "Measure first; fit and surface compatibility matter."
+          ],
+          "why_this_works": "Introduces the product and gives a practical buyer-fit qualification without promising performance."
+        },
+        {
+          "id": "c2",
+          "title": "How the Strip Is Intended to Be Applied",
+          "hook": "Measure before you apply.",
+          "narrative_structure": "tutorial",
+          "visual_approach": "Use existing door-edge and strip footage to illustrate measure, prepare, position, and check-fit steps.",
+          "target_duration_seconds": 15,
+          "key_points": [
+            "Check the gap and surface.",
+            "Measure and cut to fit.",
+            "Check door movement and latch clearance."
+          ],
+          "why_this_works": "A concise installation-oriented alternative, without claiming personal testing."
+        },
+        {
+          "id": "c3",
+          "title": "Is This Weather Stripping Right for Your Gap?",
+          "hook": "Not every gap is a match.",
+          "narrative_structure": "buyer_fit",
+          "visual_approach": "Use supplied package and application clips with simple limitation-led overlays.",
+          "target_duration_seconds": 15,
+          "key_points": [
+            "Designed for suitable small gaps.",
+            "Adhesive compatibility and surface preparation matter.",
+            "Not a repair for damaged frames or large irregular gaps."
+          ],
+          "why_this_works": "A buyer-focused qualification angle that emphasizes fit and limitations."
+        }
+      ],
+      "selected_concept": {
+        "concept_id": "c1",
+        "rationale": "Selected as the first short native preview for this project.",
+        "modifications": [
+          "Silent visual-only; no TTS, narration, music, or SFX.",
+          "Landscape 16:9; 15-second preview target.",
+          "Use five existing supplied MP4 clips only; no generated or external assets.",
+          "Exclude product_image_61.jpg because it states 48 feet while the supplied product facts and package footage state approximately 49 feet."
+        ]
+      },
+      "production_plan": {
+        "pipeline": "hybrid",
+        "playbook": "clean-professional",
+        "render_runtime": "remotion",
+        "stages": [
+          {
+            "stage": "idea",
+            "tools": [
+              {
+                "tool_name": "Amazon Video Agent importer",
+                "provider": "local repository files",
+                "available": true,
+                "estimated_cost_usd": 0
+              }
+            ]
+          },
+          {
+            "stage": "script",
+            "tools": [
+              {
+                "tool_name": "OpenMontage script stage",
+                "provider": "local repository files",
+                "available": true,
+                "estimated_cost_usd": 0
+              }
+            ]
+          },
+          {
+            "stage": "scene_plan",
+            "tools": [
+              {
+                "tool_name": "OpenMontage scene planning",
+                "provider": "local repository files",
+                "available": true,
+                "estimated_cost_usd": 0
+              }
+            ]
+          },
+          {
+            "stage": "assets",
+            "tools": [
+              {
+                "tool_name": "Existing supplied MP4 footage",
+                "provider": "Amazon Video Agent project assets",
+                "available": true,
+                "estimated_cost_usd": 0
+              }
+            ]
+          },
+          {
+            "stage": "edit",
+            "tools": [
+              {
+                "tool_name": "OpenMontage Remotion composer",
+                "provider": "local repository runtime in GitHub Actions",
+                "available": true,
+                "estimated_cost_usd": 0
+              }
+            ]
+          }
+        ]
+      },
+      "approval": {
+        "status": "approved",
+        "scope": "B08S3M2HKL 15-second silent preview only; not approval of a full-length narrated production video."
+      }
+    },
+    "decision_log": {
+      "version": "1.0",
+      "project_id": "amazon-B08S3M2HKL",
+      "decisions": [
+        {
+          "decision_id": "d-001",
+          "stage": "idea",
+          "category": "concept",
+          "subject": "First preview direction",
+          "selected": "c1",
+          "reason": "Product reveal followed by practical fit reminder.",
+          "user_visible": true,
+          "user_approved": true
+        },
+        {
+          "decision_id": "d-002",
+          "stage": "script",
+          "category": "delivery_mode",
+          "subject": "Preview audio",
+          "selected": "silent_visual_only",
+          "reason": "No voice, music, or sound effects in this preview.",
+          "user_visible": true,
+          "user_approved": true
+        },
+        {
+          "decision_id": "d-003",
+          "stage": "scene_plan",
+          "category": "source_media",
+          "subject": "Visual sources",
+          "selected": "existing_supplied_video_only",
+          "reason": "Five visually reviewed source clips; no generated or external media.",
+          "user_visible": true,
+          "user_approved": true
+        },
+        {
+          "decision_id": "d-004",
+          "stage": "assets",
+          "category": "specification_conflict",
+          "subject": "49 ft vs 48 ft product image",
+          "selected": "exclude_product_image_61",
+          "reason": "The supplied image states 3 x 16 ft / 48 ft and conflicts with the approximately 49 ft product facts.",
+          "user_visible": true,
+          "user_approved": true
+        },
+        {
+          "decision_id": "d-005",
+          "stage": "edit",
+          "category": "render",
+          "subject": "Preview render",
+          "selected": "remotion_16_9_15s",
+          "reason": "Native OpenMontage Remotion preview; no paid services.",
+          "user_visible": true,
+          "user_approved": true
+        }
+      ]
+    }
+  },
+  "review": {
+    "findings": [
+      "Reviewed all ten supplied MP4 clips and the supplied product stills.",
+      "Selected a 15-second silent C1 preview; the full imported narration is not being rendered.",
+      "Excluded the 48-foot product graphic to avoid conflicting with the supplied approximately 49-foot product facts."
+    ]
+  },
+  "cost_snapshot": {
+    "total_spent_usd": 0,
+    "total_reserved_usd": 0,
+    "budget_remaining_usd": 0
+  },
+  "metadata": {
+    "source_project": "projects/B08S3M2HKL",
+    "selected_concept": "c1",
+    "approval_basis": "User explicitly approved both the review and proceeding to project-specific approval files and native preview.",
+    "preview_only": true
+  },
+  "approved_at": "2026-11-22"
+}

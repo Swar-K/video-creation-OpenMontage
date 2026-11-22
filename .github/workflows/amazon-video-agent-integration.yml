@@ -355,23 +355,34 @@ jobs:
           - Script, scene-plan, and assets checkpoints still require their own human approvals.
           """
           with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-              for path in required:
-                  archive.write(path, path.relative_to(project).as_posix())
+              written_names = set()
+
+              def add_unique(path, archive_name):
+                  if archive_name in written_names:
+                      raise AssertionError(f"Duplicate review ZIP entry: {archive_name}")
+                  archive.write(path, archive_name)
+                  written_names.add(archive_name)
+
+              add_unique(project / "project.json", "project.json")
+              # Add each artifact and asset exactly once. The required list above
+              # is validation-only; writing it before walking these folders caused
+              # the four artifact JSON files to be duplicated in the ZIP.
               for folder in ("artifacts", "assets"):
                   root = project / folder
                   for path in sorted(root.rglob("*")):
                       if path.is_file() and not path.is_symlink():
-                          archive.write(path, path.relative_to(project).as_posix())
+                          add_unique(path, path.relative_to(project).as_posix())
               for name in ("facts.yaml", "script.md", "scenes.md"):
                   path = source / name
                   assert path.is_file(), f"Source review input missing: {path}"
-                  archive.write(path, f"source/{name}")
+                  add_unique(path, f"source/{name}")
               archive.writestr("REVIEW_README.md", readme)
 
           with zipfile.ZipFile(output) as archive:
               bad = archive.testzip()
               assert bad is None, f"Review ZIP failed integrity check at {bad}"
               names = archive.namelist()
+              assert len(names) == len(set(names)), "Review ZIP contains duplicate filenames"
               assert "artifacts/script.json" in names
               assert "artifacts/scene_plan.json" in names
               assert any(name.startswith("assets/images/") for name in names)

@@ -49,7 +49,12 @@ def _parse_scenes(path: Path) -> list[dict[str, str]]:
     for line in path.read_text(encoding="utf-8").splitlines():
         match = SCENE_RE.match(line.strip())
         if match:
-            result.append({key: value.strip() for key, value in match.groupdict().items()})
+            item = {key: value.strip() for key, value in match.groupdict().items()}
+            raw_ref = item["ref"]
+            refs = [] if raw_ref.lower() == "none" else [value.strip() for value in raw_ref.split(";") if value.strip()]
+            item["refs"] = refs
+            item["ref"] = refs[0] if refs else "none"
+            result.append(item)
     return result
 
 
@@ -180,32 +185,58 @@ def import_project(
         )
         section = script_sections[section_index]
         scene_id = visual["id"]
-        scene_to_section[scene_id] = scene_id
-        if visual["ref"].lower() != "none":
-            scene_to_section[visual["ref"]] = scene_id
+        references = visual.get("refs", [])
+        required_assets = []
+        has_video_reference = False
+        for reference in references:
+            if Path(reference).name != reference:
+                raise ValueError(f"Scene {scene_id} reference must be a filename inside assets/: {reference!r}")
+            reference_path = source / "assets" / reference
+            media_type = MEDIA_TYPES.get(reference_path.suffix.lower())
+            if media_type not in {"image", "video"} or not reference_path.is_file():
+                raise FileNotFoundError(
+                    f"Scene {scene_id} references a missing or unsupported existing asset: {reference_path}"
+                )
+            scene_to_section[reference] = scene_id
+            has_video_reference = has_video_reference or media_type == "video"
+            required_assets.append({
+                "type": media_type,
+                "description": reference,
+                "source": "provided",
+            })
+
         ai_clip = source / "assets" / f"ai_{scene_id}.mp4"
-        # scenes.md explicitly describes these as short (~5-second) AI clips.
+        if not required_assets and ai_clip.is_file():
+            scene_to_section[ai_clip.name] = scene_id
+            required_assets.append({
+                "type": "video",
+                "description": ai_clip.name,
+                "source": "provided",
+            })
+            has_video_reference = True
+        elif not required_assets:
+            required_assets.append({
+                "type": "image",
+                "description": visual["prompt"],
+                "source": "generate",
+            })
+
         # Anchor each visual beat to its representative narration section;
-        # never stretch a short source clip across an equal share of the full
-        # narration timeline.
+        # never stretch a short source clip across the full narration timeline.
         scene_start = float(section["start_seconds"])
         scene_end = min(total_duration, scene_start + 5.0)
         scene_plan.append({
             "id": scene_id,
-            "type": "broll" if visual["type"].lower() == "mood" else "generated",
+            "type": "broll" if visual["type"].lower() == "mood" or has_video_reference else "generated",
             "description": f"Imported Amazon scene prompt: {visual['prompt']}",
             "start_seconds": round(scene_start, 3),
             "end_seconds": round(max(scene_start + 0.01, scene_end), 3),
             "script_section_id": section["id"],
             "framing": "Reframe deliberately for each approved aspect ratio; keep product details and text in safe areas.",
             "movement": "Retain source clip movement or apply restrained motion to still imagery.",
-            "shot_intent": "Provide the visual beat described in the original Amazon scene prompt.",
-            "information_role": "Source scene prompt; confirm exact narration alignment during review.",
-            "required_assets": [{
-                "type": "video" if ai_clip.is_file() else "image",
-                "description": visual["ref"] if visual["ref"].lower() != "none" else visual["prompt"],
-                "source": "provided" if visual["ref"].lower() != "none" else "generate",
-            }],
+            "shot_intent": "Use the referenced source media to illustrate the narration without implying unverified product performance.",
+            "information_role": "Existing source footage or product imagery; confirm exact cut selection during human review.",
+            "required_assets": required_assets,
         })
 
     brief = {

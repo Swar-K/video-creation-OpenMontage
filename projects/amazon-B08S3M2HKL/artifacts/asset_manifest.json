@@ -1,0 +1,59 @@
+{
+  "version": "1.0",
+  "assets": [
+    {
+      "id": "a01",
+      "type": "video",
+      "path": "assets/video/2026-10-23 17-27-34 - Trim8.mp4",
+      "source_tool": "amazon-video-agent-importer",
+      "scene_id": "s01",
+      "format": "mp4",
+      "generation_summary": "Door-bottom context footage; shows the gap before the strip is applied."
+    },
+    {
+      "id": "a02",
+      "type": "video",
+      "path": "assets/video/2026-10-23 17-27-34 - Trim.mp4",
+      "source_tool": "amazon-video-agent-importer",
+      "scene_id": "s02",
+      "format": "mp4",
+      "generation_summary": "Product package and three-roll reveal."
+    },
+    {
+      "id": "a03",
+      "type": "video",
+      "path": "assets/video/2026-10-23 17-27-34 - Trim5.mp4",
+      "source_tool": "amazon-video-agent-importer",
+      "scene_id": "s03",
+      "format": "mp4",
+      "generation_summary": "Close-up of the clear strip being pulled from the roll."
+    },
+    {
+      "id": "a04",
+      "type": "video",
+      "path": "assets/video/2026-10-23 17-27-34 - Trim10.mp4",
+      "source_tool": "amazon-video-agent-importer",
+      "scene_id": "s04",
+      "format": "mp4",
+      "generation_summary": "Footage of the strip being positioned along the bottom of a door."
+    },
+    {
+      "id": "a05",
+      "type": "video",
+      "path": "assets/video/2026-10-23 17-27-34 - Trim3.mp4",
+      "source_tool": "amazon-video-agent-importer",
+      "scene_id": "s05",
+      "format": "mp4",
+      "generation_summary": "Closing product/package recap."
+    }
+  ],
+  "total_cost_usd": 0,
+  "metadata": {
+    "project_id": "amazon-B08S3M2HKL",
+    "source_policy": "existing_supplied_video_only",
+    "external_assets_allowed": false,
+    "generated_assets_allowed": false,
+    "voice_enabled": false,
+    "music_enabled": false
+  }
+}

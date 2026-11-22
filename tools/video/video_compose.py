@@ -2393,6 +2393,15 @@ class VideoCompose(BaseTool):
         log = logging.getLogger("video_compose.final_review")
         issues: list[str] = []
 
+        # Audio is a deliverable requirement, not a universal assumption.
+        # Explicit metadata.audio_expected wins; legacy project metadata
+        # audio="none"/"silent" is also recognized for existing projects.
+        metadata = (edit_decisions or {}).get("metadata", {})
+        audio_expected = metadata.get("audio_expected")
+        if audio_expected is None:
+            audio_mode = str(metadata.get("audio", "")).strip().lower()
+            audio_expected = audio_mode not in {"none", "silent", "off"}
+
         # --- 1. Technical probe via ffprobe ---
         technical_probe: dict[str, Any] = {
             "valid_container": False,
@@ -2458,8 +2467,10 @@ class VideoCompose(BaseTool):
                     technical_probe["issues"].append(
                         f"Resolution {width}x{height} is very low"
                     )
-                if not audio_stream:
-                    technical_probe["issues"].append("No audio stream in output")
+                if audio_expected and not audio_stream:
+                    technical_probe["issues"].append(
+                        "Expected audio stream is missing from output"
+                    )
             else:
                 technical_probe["issues"].append(
                     f"ffprobe failed with exit code {proc.returncode}"
@@ -2532,7 +2543,11 @@ class VideoCompose(BaseTool):
             "mix_intelligible": True,
             "issues": [],
         }
-        if technical_probe.get("has_audio") and duration > 0:
+        if audio_expected and not technical_probe.get("has_audio"):
+            audio_spotcheck["issues"].append(
+                "Expected audio stream is missing from output"
+            )
+        elif audio_expected and duration > 0:
             try:
                 # Use ffmpeg volumedetect to check audio levels
                 cmd = [
@@ -2727,18 +2742,27 @@ class VideoCompose(BaseTool):
         # as the word 'dot'" trap) that volume-based audio checks miss.
         # Only runs when caller provides both the transcript and script; when
         # skipped, issues list records that so the silence is visible.
-        transcript_comparison = self._compare_transcript_to_script(
-            Path(narration_transcript_path) if narration_transcript_path else None,
-            script_text,
-        )
-        issues.extend(transcript_comparison.get("issues", []))
+        if audio_expected:
+            transcript_comparison = self._compare_transcript_to_script(
+                Path(narration_transcript_path) if narration_transcript_path else None,
+                script_text,
+            )
+            issues.extend(transcript_comparison.get("issues", []))
+        else:
+            transcript_comparison = {
+                "transcript_matches_script": None,
+                "word_accuracy": None,
+                "issues": [],
+                "skipped_reason": "Audio is explicitly not expected for this deliverable.",
+            }
 
         # --- 7. Determine overall status ---
         critical_issues = [
             i for i in issues
             if any(kw in i.lower() for kw in [
                 "silent downgrade", "delivery promise violation",
-                "effectively silent", "ffprobe failed", "suspiciously short",
+                "effectively silent", "expected audio stream is missing",
+                "ffprobe failed", "suspiciously short",
                 "tts punctuation leak",  # reading literal punctuation aloud
             ])
         ]
@@ -2764,7 +2788,10 @@ class VideoCompose(BaseTool):
             "checks": {
                 "technical_probe": technical_probe,
                 "visual_spotcheck": visual_spotcheck,
-                "audio_spotcheck": audio_spotcheck,
+                "audio_spotcheck": {
+                    **audio_spotcheck,
+                    "audio_expected": bool(audio_expected),
+                },
                 "promise_preservation": promise_preservation,
                 "subtitle_check": subtitle_check,
                 "transcript_comparison": transcript_comparison,

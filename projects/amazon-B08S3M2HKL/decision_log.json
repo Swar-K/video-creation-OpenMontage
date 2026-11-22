@@ -1,0 +1,56 @@
+{
+  "version": "1.0",
+  "project_id": "amazon-B08S3M2HKL",
+  "decisions": [
+    {
+      "decision_id": "d-001",
+      "stage": "idea",
+      "category": "concept",
+      "subject": "First preview direction",
+      "selected": "c1",
+      "reason": "Product reveal followed by practical fit reminder.",
+      "user_visible": true,
+      "user_approved": true
+    },
+    {
+      "decision_id": "d-002",
+      "stage": "script",
+      "category": "delivery_mode",
+      "subject": "Preview audio",
+      "selected": "silent_visual_only",
+      "reason": "No voice, music, or sound effects in this preview.",
+      "user_visible": true,
+      "user_approved": true
+    },
+    {
+      "decision_id": "d-003",
+      "stage": "scene_plan",
+      "category": "source_media",
+      "subject": "Visual sources",
+      "selected": "existing_supplied_video_only",
+      "reason": "Five visually reviewed source clips; no generated or external media.",
+      "user_visible": true,
+      "user_approved": true
+    },
+    {
+      "decision_id": "d-004",
+      "stage": "assets",
+      "category": "specification_conflict",
+      "subject": "49 ft vs 48 ft product image",
+      "selected": "exclude_product_image_61",
+      "reason": "The supplied image states 3 x 16 ft / 48 ft and conflicts with the approximately 49 ft product facts.",
+      "user_visible": true,
+      "user_approved": true
+    },
+    {
+      "decision_id": "d-005",
+      "stage": "edit",
+      "category": "render",
+      "subject": "Preview render",
+      "selected": "remotion_16_9_15s",
+      "reason": "Native OpenMontage Remotion preview; no paid services.",
+      "user_visible": true,
+      "user_approved": true
+    }
+  ]
+}

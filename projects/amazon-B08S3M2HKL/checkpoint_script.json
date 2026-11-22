@@ -1,0 +1,94 @@
+{
+  "version": "1.0",
+  "project_id": "amazon-B08S3M2HKL",
+  "pipeline_type": "hybrid",
+  "stage": "script",
+  "status": "completed",
+  "timestamp": "2026-11-22",
+  "style_playbook": "clean-professional",
+  "checkpoint_policy": "guided",
+  "human_approval_required": true,
+  "human_approved": true,
+  "artifacts": {
+    "script": {
+      "version": "1.0",
+      "title": "Alien Draft Seal: A Quick Buyer-Fit Preview",
+      "total_duration_seconds": 15,
+      "sections": [
+        {
+          "id": "v01",
+          "label": "problem_hook",
+          "text": "Cold drafts around a door gap?",
+          "start_seconds": 0,
+          "end_seconds": 3,
+          "source_ref": "Creative hook; no claim that this product eliminates drafts."
+        },
+        {
+          "id": "v02",
+          "label": "product_reveal",
+          "text": "Alien Draft Seal",
+          "start_seconds": 3,
+          "end_seconds": 6,
+          "source_ref": "Supplied product packaging and facts.yaml product_name."
+        },
+        {
+          "id": "v03",
+          "label": "package_specification",
+          "text": "Three rolls. Approximately 49 feet total.",
+          "start_seconds": 6,
+          "end_seconds": 9,
+          "source_ref": "facts.yaml package quantity and total length; not product_image_61.jpg, which states 3 x 16 ft / 48 ft."
+        },
+        {
+          "id": "v04",
+          "label": "application",
+          "text": "Adhesive-backed transparent silicone strip.",
+          "start_seconds": 9,
+          "end_seconds": 12,
+          "source_ref": "facts.yaml product description; supplied footage illustrates positioning only."
+        },
+        {
+          "id": "v05",
+          "label": "buyer_fit",
+          "text": "Measure first. Fit and surface compatibility matter.",
+          "start_seconds": 12,
+          "end_seconds": 15,
+          "source_ref": "facts.yaml installation guidance and limitations."
+        }
+      ],
+      "metadata": {
+        "source": "openmontage_hybrid_script_stage",
+        "delivery_mode": "silent_visual_only",
+        "on_screen_text_only": true,
+        "voice_enabled": false,
+        "music_enabled": false,
+        "sound_effects_enabled": false,
+        "target_platform": "youtube",
+        "aspect_ratio": "16:9",
+        "preview_only": true,
+        "supersedes_imported_narration_for_preview": true,
+        "note": "The imported approximately 263-second narration remains source material. This approved render package is a separate 15-second silent preview only."
+      }
+    }
+  },
+  "review": {
+    "findings": [
+      "Preview-specific text is 15 seconds and uses on-screen text only.",
+      "The longer imported narration remains source material and is not used in this preview.",
+      "No firsthand testing, guaranteed draft reduction, or energy savings are claimed."
+    ]
+  },
+  "cost_snapshot": {
+    "total_spent_usd": 0,
+    "total_reserved_usd": 0,
+    "budget_remaining_usd": 0
+  },
+  "metadata": {
+    "delivery_mode": "silent_visual_only",
+    "source_review_package_artifact_id": 14750188388,
+    "source_review_package_verified": true,
+    "approval_basis": "User explicitly approved both the review and proceeding to project-specific approval files and native preview.",
+    "preview_only": true
+  },
+  "approved_at": "2026-11-22"
+}

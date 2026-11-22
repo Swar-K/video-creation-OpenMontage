@@ -1,0 +1,155 @@
+{
+  "version": "1.0",
+  "project_id": "amazon-B08S3M2HKL",
+  "pipeline_type": "hybrid",
+  "stage": "scene_plan",
+  "status": "completed",
+  "timestamp": "2026-11-22",
+  "style_playbook": "clean-professional",
+  "checkpoint_policy": "guided",
+  "human_approval_required": true,
+  "human_approved": true,
+  "artifacts": {
+    "scene_plan": {
+      "version": "1.0",
+      "style_playbook": "clean-professional",
+      "scenes": [
+        {
+          "id": "s01",
+          "type": "broll",
+          "description": "Open on the supplied door-bottom footage to establish the draft-gap problem without claiming a measured draft or temperature change.",
+          "start_seconds": 0,
+          "end_seconds": 3,
+          "script_section_id": "v01",
+          "framing": "16:9 landscape; retain the door bottom and visible floor gap.",
+          "movement": "Use the source clip's natural movement; no simulated performance effect.",
+          "transition_in": "fade",
+          "transition_out": "cut",
+          "overlay_notes": "Exact text: 'Cold drafts around a door gap?'",
+          "shot_intent": "Establish the use case without implying product performance.",
+          "information_role": "A door gap is the problem context.",
+          "required_assets": [
+            {
+              "type": "video",
+              "description": "assets/video/2026-10-23 17-27-34 - Trim8.mp4",
+              "source": "provided"
+            }
+          ]
+        },
+        {
+          "id": "s02",
+          "type": "broll",
+          "description": "Reveal the Alien Draft Seal package and rolls using the supplied product footage.",
+          "start_seconds": 3,
+          "end_seconds": 6,
+          "script_section_id": "v02",
+          "framing": "16:9 landscape; keep the product name and package visible.",
+          "movement": "Retain source clip movement; no added parallax.",
+          "transition_in": "cut",
+          "transition_out": "cut",
+          "overlay_notes": "Exact text: 'Alien Draft Seal'.",
+          "shot_intent": "Identify the featured product.",
+          "information_role": "Product identity.",
+          "required_assets": [
+            {
+              "type": "video",
+              "description": "assets/video/2026-10-23 17-27-34 - Trim.mp4",
+              "source": "provided"
+            }
+          ]
+        },
+        {
+          "id": "s03",
+          "type": "broll",
+          "description": "Show the clear silicone strip being pulled from the roll. Do not use the supplied 48-foot graphic because the source facts state approximately 49 feet total.",
+          "start_seconds": 6,
+          "end_seconds": 9,
+          "script_section_id": "v03",
+          "framing": "16:9 landscape; keep the strip visible and the packaging context where possible.",
+          "movement": "Retain source clip movement.",
+          "transition_in": "cut",
+          "transition_out": "cut",
+          "overlay_notes": "Exact text: 'Three rolls. Approximately 49 feet total.'",
+          "shot_intent": "Communicate the package quantity and total length using the source facts.",
+          "information_role": "Three rolls; approximately 49 feet total.",
+          "required_assets": [
+            {
+              "type": "video",
+              "description": "assets/video/2026-10-23 17-27-34 - Trim5.mp4",
+              "source": "provided"
+            }
+          ]
+        },
+        {
+          "id": "s04",
+          "type": "broll",
+          "description": "Use supplied footage of the strip being positioned at the door bottom to illustrate the adhesive-backed application concept, not verified performance.",
+          "start_seconds": 9,
+          "end_seconds": 12,
+          "script_section_id": "v04",
+          "framing": "16:9 landscape; retain the strip and door edge.",
+          "movement": "Retain source clip movement.",
+          "transition_in": "cut",
+          "transition_out": "cut",
+          "overlay_notes": "Exact text: 'Adhesive-backed transparent silicone strip'.",
+          "shot_intent": "Illustrate the intended product form and positioning.",
+          "information_role": "Product construction and application concept.",
+          "required_assets": [
+            {
+              "type": "video",
+              "description": "assets/video/2026-10-23 17-27-34 - Trim10.mp4",
+              "source": "provided"
+            }
+          ]
+        },
+        {
+          "id": "s05",
+          "type": "broll",
+          "description": "Close on the supplied package footage with a practical buyer-fit reminder.",
+          "start_seconds": 12,
+          "end_seconds": 15,
+          "script_section_id": "v05",
+          "framing": "16:9 landscape; keep the product package legible.",
+          "movement": "Retain source clip movement.",
+          "transition_in": "cut",
+          "transition_out": "fade",
+          "overlay_notes": "Exact text: 'Measure first. Fit and surface compatibility matter.'",
+          "shot_intent": "End with a useful qualification rather than a performance promise.",
+          "information_role": "Measure the gap and check surface compatibility.",
+          "required_assets": [
+            {
+              "type": "video",
+              "description": "assets/video/2026-10-23 17-27-34 - Trim3.mp4",
+              "source": "provided"
+            }
+          ]
+        }
+      ],
+      "metadata": {
+        "project_id": "amazon-B08S3M2HKL",
+        "total_duration_seconds": 15,
+        "preview_only": true,
+        "source": "openmontage_hybrid_scene_plan_stage"
+      }
+    }
+  },
+  "review": {
+    "findings": [
+      "Five 3-second scenes cover the complete 15-second preview timeline.",
+      "Each scene maps to an existing clip visually checked from the review ZIP.",
+      "No generated or external footage is required."
+    ]
+  },
+  "cost_snapshot": {
+    "total_spent_usd": 0,
+    "total_reserved_usd": 0,
+    "budget_remaining_usd": 0
+  },
+  "metadata": {
+    "script_checkpoint": "checkpoint_script.json",
+    "total_duration_seconds": 15,
+    "approval_basis": "User explicitly approved both the review and proceeding to project-specific approval files and native preview.",
+    "preview_only": true
+  },
+  "approved_at": "2026-11-22"
+}

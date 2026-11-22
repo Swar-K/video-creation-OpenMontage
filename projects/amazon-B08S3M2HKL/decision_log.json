@@ -5,52 +5,189 @@
     {
       "decision_id": "d-001",
       "stage": "idea",
-      "category": "concept",
-      "subject": "First preview direction",
+      "category": "concept_selection",
+      "subject": "First preview creative direction",
+      "options_considered": [
+        {
+          "option_id": "c1",
+          "label": "Product reveal with buyer-fit reminder",
+          "score": 0.9,
+          "reason": "Introduces the product and ends with a useful fit qualification."
+        },
+        {
+          "option_id": "c2",
+          "label": "Application overview",
+          "score": 0.75,
+          "reason": "Useful as a follow-up installation explainer."
+        },
+        {
+          "option_id": "c3",
+          "label": "Buyer-fit reality check",
+          "score": 0.8,
+          "reason": "Strong limitation-led angle, better as a separate follow-up."
+        }
+      ],
       "selected": "c1",
-      "reason": "Product reveal followed by practical fit reminder.",
+      "reason": "Selected as the recommended first preview direction; the user approved proceeding with a native preview, while this specific creative choice remains the proposed default.",
       "user_visible": true,
-      "user_approved": true
+      "user_approved": false,
+      "confidence": 0.88
     },
     {
       "decision_id": "d-002",
-      "stage": "script",
-      "category": "delivery_mode",
-      "subject": "Preview audio",
-      "selected": "silent_visual_only",
-      "reason": "No voice, music, or sound effects in this preview.",
+      "stage": "assets",
+      "category": "motion_commitment",
+      "subject": "Visual source policy",
+      "options_considered": [
+        {
+          "option_id": "existing_source_video",
+          "label": "Use existing supplied video clips",
+          "score": 1,
+          "reason": "Ten source clips are available and visually reviewed."
+        },
+        {
+          "option_id": "generated_media",
+          "label": "Generate new media",
+          "score": 0,
+          "reason": "Not needed and outside the zero-cost source-led preview scope.",
+          "rejected_because": "Would add cost and new assets that are not required."
+        }
+      ],
+      "selected": "existing_source_video",
+      "reason": "Use only supplied clips; no generated or external footage.",
       "user_visible": true,
-      "user_approved": true
+      "user_approved": false,
+      "confidence": 0.99
     },
     {
       "decision_id": "d-003",
-      "stage": "scene_plan",
-      "category": "source_media",
-      "subject": "Visual sources",
-      "selected": "existing_supplied_video_only",
-      "reason": "Five visually reviewed source clips; no generated or external media.",
+      "stage": "idea",
+      "category": "music_source",
+      "subject": "Preview audio",
+      "options_considered": [
+        {
+          "option_id": "none",
+          "label": "No audio",
+          "score": 1,
+          "reason": "Keeps this preview visual-only and avoids TTS/music dependencies."
+        },
+        {
+          "option_id": "music",
+          "label": "Add music",
+          "score": 0,
+          "reason": "Not required for the native integration proof.",
+          "rejected_because": "Outside the minimal preview scope."
+        }
+      ],
+      "selected": "none",
+      "reason": "No narration, music, or sound effects are included in this proposed preview configuration.",
       "user_visible": true,
-      "user_approved": true
+      "user_approved": false,
+      "confidence": 0.95
     },
     {
       "decision_id": "d-004",
       "stage": "assets",
-      "category": "specification_conflict",
-      "subject": "49 ft vs 48 ft product image",
-      "selected": "exclude_product_image_61",
-      "reason": "The supplied image states 3 x 16 ft / 48 ft and conflicts with the approximately 49 ft product facts.",
+      "category": "visual_accuracy_check",
+      "subject": "Conflicting 48-foot product graphic",
+      "options_considered": [
+        {
+          "option_id": "use_image_61",
+          "label": "Use product_image_61.jpg",
+          "score": 0,
+          "reason": "Its graphic states 3 x 16 ft / 48 ft, conflicting with the supplied approximately 49-foot total.",
+          "rejected_because": "Would put a conflicting specification on screen."
+        },
+        {
+          "option_id": "exclude_image_61",
+          "label": "Exclude product_image_61.jpg",
+          "score": 1,
+          "reason": "Use package footage and supplied product facts for the approximately 49-foot figure."
+        }
+      ],
+      "selected": "exclude_image_61",
+      "reason": "Avoid displaying conflicting 48-foot text alongside the approximately 49-foot source facts.",
       "user_visible": true,
-      "user_approved": true
+      "user_approved": false,
+      "confidence": 0.99
     },
     {
       "decision_id": "d-005",
       "stage": "edit",
-      "category": "render",
-      "subject": "Preview render",
-      "selected": "remotion_16_9_15s",
-      "reason": "Native OpenMontage Remotion preview; no paid services.",
+      "category": "render_runtime_selection",
+      "subject": "Native render runtime",
+      "options_considered": [
+        {
+          "option_id": "remotion",
+          "label": "OpenMontage Remotion",
+          "score": 1,
+          "reason": "The native integration workflow supports this runtime."
+        },
+        {
+          "option_id": "ffmpeg",
+          "label": "FFmpeg concat",
+          "score": 0.5,
+          "reason": "Already used for the short import smoke test, but it is not the native Remotion composition.",
+          "rejected_because": "Would not test the requested native OpenMontage path."
+        }
+      ],
+      "selected": "remotion",
+      "reason": "Use the native Remotion composition path.",
       "user_visible": true,
-      "user_approved": true
+      "user_approved": false,
+      "confidence": 0.99
+    },
+    {
+      "decision_id": "d-006",
+      "stage": "edit",
+      "category": "composition_mode",
+      "subject": "Composition mode",
+      "options_considered": [
+        {
+          "option_id": "templated",
+          "label": "Templated composition",
+          "score": 1,
+          "reason": "Uses the existing Explainer composition and approved cuts."
+        },
+        {
+          "option_id": "atelier",
+          "label": "Project-local bespoke composition",
+          "score": 0.3,
+          "reason": "Unnecessary for a short integration preview.",
+          "rejected_because": "Would add custom code outside the current test scope."
+        }
+      ],
+      "selected": "templated",
+      "reason": "Use the existing templated Remotion composition.",
+      "user_visible": true,
+      "user_approved": false,
+      "confidence": 0.98
+    },
+    {
+      "decision_id": "d-007",
+      "stage": "approval_policy",
+      "category": "approval_policy",
+      "subject": "Preview scope",
+      "options_considered": [
+        {
+          "option_id": "15_second_preview",
+          "label": "15-second preview only",
+          "score": 1,
+          "reason": "Validates the native render path without treating the full imported narration as approved."
+        },
+        {
+          "option_id": "full_length_narrated",
+          "label": "Full-length narrated video",
+          "score": 0,
+          "reason": "The long-form script and production edit have not been approved for rendering.",
+          "rejected_because": "Would exceed the approved preview scope."
+        }
+      ],
+      "selected": "15_second_preview",
+      "reason": "Limit this run to the short preview; the full 263-second narration remains outside this approval.",
+      "user_visible": true,
+      "user_approved": false,
+      "confidence": 0.99
     }
   ]
 }

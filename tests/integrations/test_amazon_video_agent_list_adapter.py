@@ -35,7 +35,7 @@ class AmazonProjectAdapterTests(unittest.TestCase):
             script = (
                 "# TITLE: Top 3 sample products\n"
                 "## hook\n[1] Here are three options worth considering. | product: all | p: 1\n"
-                "## item_3\n[2] This is the third pick for travel. | product: 3 | p: 1\n"
+                "## item_3\n[2] This is the third pick for travel. | product: 3 | assets: photo-3.jpg | p: 1\n"
                 "## item_2\n[3] This is the second pick for compact use. | product: 2 | p: 1\n"
                 "## item_1\n[4] This is my top overall pick. | product: 1 | p: 1\n"
             )
@@ -43,7 +43,7 @@ class AmazonProjectAdapterTests(unittest.TestCase):
             script = (
                 "# TITLE: Product comparison\n"
                 "## intro\n[1] Here are the two products. | product: all | p: 1\n"
-                "## product_1\n[2] First product details. | product: 1 | p: 1\n"
+                "## product_1\n[2] First product details. | product: 1 | assets: photo-1.jpg | p: 1\n"
                 "## product_2\n[3] Second product details. | product: 2 | p: 1\n"
                 "## verdict\n[4] Here is who each product suits. | product: all | p: 1\n"
             )
@@ -63,7 +63,7 @@ class AmazonProjectAdapterTests(unittest.TestCase):
             staged = _write_staged_multi(source, root / "stage" / "source")
             scenes = _parse_scenes(staged / "scenes.md")
             self.assertEqual(len(scenes), 4)
-            self.assertTrue(scenes[1]["refs"][0].startswith("P03__"))
+            self.assertEqual(scenes[1]["refs"][0], "P03__photo-3.jpg")
             self.assertTrue(scenes[2]["refs"][0].startswith("P02__"))
             self.assertTrue(scenes[3]["refs"][0].startswith("P01__"))
             self.assertEqual(len(list((staged / "assets").iterdir())), 6)
@@ -76,9 +76,16 @@ class AmazonProjectAdapterTests(unittest.TestCase):
             staged = _write_staged_multi(source, root / "stage" / "source")
             scenes = _parse_scenes(staged / "scenes.md")
             self.assertEqual(len(scenes), 4)
-            self.assertTrue(scenes[1]["refs"][0].startswith("P01__"))
+            self.assertEqual(scenes[1]["refs"][0], "P01__photo-1.jpg")
             self.assertTrue(scenes[2]["refs"][0].startswith("P02__"))
             self.assertEqual(len(list((staged / "assets").iterdir())), 4)
+
+    def test_explicit_script_assets_are_parsed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = self._make_multi_project(Path(temp), "list")
+            _, sections = _parse_script(source / "script.md")
+            mapping = _script_asset_map(source / "script.md", sections)
+            self.assertEqual(mapping["2"], ["photo-3.jpg"])
 
     def test_product_metadata_is_parsed(self):
         with tempfile.TemporaryDirectory() as temp:

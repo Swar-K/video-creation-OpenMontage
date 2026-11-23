@@ -50,6 +50,9 @@ class AmazonProjectAdapterTests(unittest.TestCase):
                 "## head_to_head\n[4] Here is a direct comparison. | assets: P1-A02,P2-A02 | p: 1\n"
             )
         (project / "script.md").write_text(script, encoding="utf-8")
+        if kind == "compare":
+            (project / "assets").mkdir()
+            (project / "assets" / "shared.jpg").write_bytes(b"shared-image")
         for rank, product_id in enumerate(product_ids, 1):
             product = projects / product_id
             (product / "assets").mkdir(parents=True)
@@ -78,10 +81,11 @@ class AmazonProjectAdapterTests(unittest.TestCase):
             staged = _write_staged_multi(source, root / "stage" / "source")
             scenes = _parse_scenes(staged / "scenes.md")
             self.assertEqual(len(scenes), 4)
+            self.assertEqual(scenes[0]["refs"], ["X__shared.jpg"])
             self.assertEqual(scenes[1]["refs"][0], "P01__photo-1.jpg")
             self.assertTrue(scenes[2]["refs"][0].startswith("P02__"))
             self.assertEqual(scenes[3]["refs"], ["P01__photo-1.jpg", "P02__photo-2.jpg"])
-            self.assertEqual(len(list((staged / "assets").iterdir())), 4)
+            self.assertEqual(len(list((staged / "assets").iterdir())), 5)
 
     def test_explicit_script_assets_are_parsed(self):
         with tempfile.TemporaryDirectory() as temp:

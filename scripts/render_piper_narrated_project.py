@@ -11,6 +11,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from integrations.amazon_video_agent.importer import _parse_script
 from integrations.amazon_video_agent.list_adapter import import_selected_project
+from integrations.amazon_video_agent.tts_adapter import synthesize_voice
 from tools.video.video_compose import VideoCompose
 from schemas.artifacts import validate_artifact
 MODEL="en_US-ljspeech-medium"
@@ -170,60 +171,32 @@ def manifest_with_absolute_paths(project_root, manifest):
     return resolved
 
 
-EDGE_VOICES = {
-    "edge_female": ("en-US-AvaMultilingualNeural", "female"),
-    "edge_female_2": ("en-US-EmmaMultilingualNeural", "female"),
-    "edge_male": ("en-US-AndrewMultilingualNeural", "male"),
-    "edge_male_2": ("en-US-BrianMultilingualNeural", "male"),
-}
-
-
-def synthesize_edge_narration(text, voice_name, output_wav):
-    """Use one selected Microsoft Edge neural voice for the entire narration; never switch voices."""
-    import asyncio
-    import edge_tts
-
-    output_wav=Path(output_wav)
-    output_wav.parent.mkdir(parents=True,exist_ok=True)
-    mp3=output_wav.with_suffix(".edge.mp3")
-
-    async def _save():
-        communicator=edge_tts.Communicate(text=text,voice=voice_name,rate="-4%",volume="+0%")
-        await communicator.save(str(mp3))
-
-    try:
-        asyncio.run(_save())
-        subprocess.run([
-            "ffmpeg","-hide_banner","-loglevel","error","-y","-i",str(mp3),
-            "-ar","22050","-ac","1","-c:a","pcm_s16le",str(output_wav)
-        ],check=True,capture_output=True,timeout=180)
-    finally:
-        mp3.unlink(missing_ok=True)
-    if not output_wav.is_file() or output_wav.stat().st_size<1000:
-        raise RuntimeError(f"Edge TTS did not produce valid narration for {voice_name}")
-    return output_wav
-
-
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--source-project",type=Path,required=True)
     p.add_argument("--model",type=Path,default=None)
     p.add_argument("--work-dir",type=Path,required=True)
     p.add_argument("--output",type=Path,required=True)
-    p.add_argument("--voice",choices=["piper_female",*EDGE_VOICES],default="piper_female")
+    p.add_argument("--voice",default="edge_female")
+    p.add_argument("--voice-config",type=Path,default=None)
     p.add_argument("--approve-tts",action="store_true")
     p.add_argument("--approve-render",action="store_true")
+    p.add_argument("--approve-paid-tts",action="store_true")
     a=p.parse_args()
     if not(a.approve_tts and a.approve_render):
         raise SystemExit("Blocked: both explicit approvals are required")
     source=a.source_project.expanduser().resolve()
     project_id=source.name
-    if not project_id or not all(c.isalnum() or c in "-_" for c in project_id):
-        raise SystemExit("Project directory name must contain only letters, digits, hyphens, or underscores")
+    if not project_id or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{2,59}",project_id):
+        raise SystemExit("Project directory name must contain 3-60 safe letters, digits, hyphens, or underscores")
     if not source.is_dir():
         raise FileNotFoundError(f"Project directory not found: {source}")
-    is_list=(source/"list.yaml").is_file()
-    required=("list.yaml","script.md") if is_list else ("facts.yaml","script.md","scenes.md","assets")
+    has_list=(source/"list.yaml").is_file()
+    has_compare=(source/"compare.yaml").is_file()
+    if has_list and has_compare:
+        raise ValueError("A project cannot contain both list.yaml and compare.yaml")
+    is_multi=has_list or has_compare
+    required=("list.yaml" if has_list else "compare.yaml","script.md") if is_multi else ("facts.yaml","script.md","scenes.md","assets")
     for name in required:
         if not (source/name).exists():
             raise FileNotFoundError(f"Selected project is missing required input: {name}")
@@ -245,12 +218,16 @@ def main():
         voice_model=MODEL
         voice_gender="female"
         voice_warning=None
+        voice_info={"chunks":1,"label":"Piper female","paid_tts_approved":False}
     else:
-        voice_name,voice_gender=EDGE_VOICES[a.voice]
-        synthesize_edge_narration(narration,voice_name,audio)
-        voice_provider="microsoft_edge_tts"
-        voice_model=voice_name
-        voice_warning="Uses Microsoft's unofficial Edge TTS endpoint; Ad Agent notes there is no commercial licence statement."
+        voice_config=a.voice_config or source.parent.parent/"config.yaml"
+        voice_info=synthesize_voice(
+            narration,a.voice,voice_config,audio,approve_paid=a.approve_paid_tts
+        )
+        voice_provider=voice_info["provider"]
+        voice_model=voice_info["voice"]
+        voice_gender=voice_info["gender"]
+        voice_warning="; ".join(voice_info["warnings"]) or None
     with wave.open(str(audio),"rb") as w:
         duration=w.getnframes()/w.getframerate()
         if duration<30:

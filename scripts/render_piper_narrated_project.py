@@ -118,6 +118,22 @@ def prepare_clean_video_assets(project_root, manifest):
     return cleaned, processed
 
 
+def approved_product_stills(manifest):
+    """Select only neutral product/installation imagery with supportable content."""
+    selected = [
+        asset for asset in manifest.get("assets", [])
+        if asset.get("type") == "image"
+        and Path(asset["path"]).name in APPROVED_STILL_FILENAMES
+    ]
+    present = {Path(asset["path"]).name for asset in selected}
+    missing = APPROVED_STILL_FILENAMES - present
+    if missing:
+        raise RuntimeError(
+            "Approved clean product stills missing: " + ", ".join(sorted(missing))
+        )
+    return selected
+
+
 def text_from(path):
     _,sections=_parse_script(path)
     text=" ".join(s["text"] for s in sections)
@@ -182,11 +198,7 @@ def main():
         if duration<30: raise RuntimeError("Narration duration invalid")
     project=import_project(a.source_project,"amazon-"+ASIN+"-narrated",projects_dir=a.work_dir,media_mode="copy")
     root=project/"artifacts"; script=json.loads((root/"script.json").read_text()); manifest=json.loads((root/"asset_manifest.json").read_text()); plan=json.loads((root/"scene_plan.json").read_text())
-    stills=[x for x in manifest["assets"] if x["type"]=="image" and Path(x["path"]).name in APPROVED_STILL_FILENAMES]
-    present_stills={Path(x["path"]).name for x in stills}
-    missing_stills=APPROVED_STILL_FILENAMES-present_stills
-    if missing_stills:
-        raise RuntimeError("Approved clean product stills missing: "+", ".join(sorted(missing_stills)))
+    stills=approved_product_stills(manifest)
     decisions=build_edit_decisions(script,manifest,plan,stills)
     validate_artifact("edit_decisions",decisions)
     render_manifest=manifest_with_absolute_paths(project,manifest)

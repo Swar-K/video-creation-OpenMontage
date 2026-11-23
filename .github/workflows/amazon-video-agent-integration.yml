@@ -183,7 +183,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install minimal importer dependencies
-        run: python -m pip install --upgrade pip PyYAML jsonschema
+        run: python -m pip install --upgrade pip PyYAML jsonschema requests
 
       - name: Run importer unit tests
         working-directory: openmontage

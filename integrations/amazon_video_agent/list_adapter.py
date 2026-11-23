@@ -21,7 +21,13 @@ PROJECT_ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{2,59}")
 
 
 def _multi_config(source: Path) -> tuple[str, dict[str, Any]]:
-    config_name = "list.yaml" if (source / "list.yaml").is_file() else "compare.yaml"
+    has_list = (source / "list.yaml").is_file()
+    has_compare = (source / "compare.yaml").is_file()
+    if has_list and has_compare:
+        raise ValueError("A multi-product project cannot contain both list.yaml and compare.yaml")
+    if not has_list and not has_compare:
+        raise FileNotFoundError("Multi-product project requires list.yaml or compare.yaml")
+    config_name = "list.yaml" if has_list else "compare.yaml"
     path = source / config_name
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
@@ -39,7 +45,7 @@ def _product_ids(config: dict[str, Any]) -> list[str]:
     result: list[str] = []
     for item in config["products"]:
         value = (item.get("id") or item.get("asin")) if isinstance(item, dict) else item
-        product_id = str(value or "").strip()
+        product_id = str(value or "").strip().upper()
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{2,39}", product_id):
             raise ValueError(f"Invalid product folder id in project YAML: {product_id!r}")
         if product_id in result:
@@ -67,10 +73,16 @@ def _script_product_map(script_path: Path, sections: list[dict[str, str]]) -> di
     return result
 
 
-def _script_asset_map(script_path: Path, sections: list[dict[str, str]]) -> dict[str, list[str]]:
-    """Read optional explicit assets: metadata from Ad Agent script lines."""
+def _script_asset_map(
+    script_path: Path, sections: list[dict[str, str]], asset_index: dict[str, Path]
+) -> dict[str, list[Path]]:
+    """Resolve Ad Agent's P1-A03 / P2-A04 / X-A01 IDs to original media files.
+
+    The Axx index is assigned from the sorted supported files in each product
+    assets/ directory before selection, so preserve that exact ordering.
+    """
     wanted = {section["id"] for section in sections}
-    result: dict[str, list[str]] = {}
+    result: dict[str, list[Path]] = {}
     line_re = re.compile(r"^\[(?P<id>[^\]]+)\]\s*(?P<body>.*)$")
     assets_re = re.compile(r"\|\s*assets\s*:\s*(?P<assets>[^|]+)", re.I)
     for raw in script_path.read_text(encoding="utf-8").splitlines():
@@ -78,19 +90,35 @@ def _script_asset_map(script_path: Path, sections: list[dict[str, str]]) -> dict
         if not match or match.group("id") not in wanted:
             continue
         assets = assets_re.search(match.group("body"))
-        if assets:
-            names = [
-                Path(value.strip().strip("\\\"'")).name
-                for value in re.split(r"[;,]", assets.group("assets"))
-                if value.strip()
-            ]
-            if names:
-                result[match.group("id")] = names
+        if not assets:
+            continue
+        resolved = []
+        for asset_id in [x.strip() for x in assets.group("assets").split(",") if x.strip()]:
+            if asset_id not in asset_index:
+                # Some existing Ad Agent list scripts retain X-xx references
+                # after their optional shared assets/ folder was removed.
+                # Match Ad Agent's renderer: ignore unavailable shared IDs and
+                # let the section use product-specific fallback footage.
+                if asset_id.startswith("X-") and not any(key.startswith("X-") for key in asset_index):
+                    print(
+                        f"WARNING: {asset_id} in section {match.group('id')} has no shared source asset; "
+                        "using product footage for this section."
+                    )
+                    continue
+                raise FileNotFoundError(
+                    f"Script section {match.group('id')} references unknown Ad Agent asset ID {asset_id!r}"
+                )
+            resolved.append(asset_index[asset_id])
+        if resolved:
+            result[match.group("id")] = resolved
     return result
 
 
-def _copy_product_assets(source: Path, stage_assets: Path, product_ids: list[str]) -> dict[int, list[Path]]:
+def _copy_product_assets(
+    source: Path, stage_assets: Path, product_ids: list[str]
+) -> tuple[dict[int, list[Path]], dict[str, Path]]:
     by_rank: dict[int, list[Path]] = {}
+    asset_index: dict[str, Path] = {}
     for rank, product_id in enumerate(product_ids, 1):
         product_root = source.parent / product_id
         facts = product_root / "facts.yaml"
@@ -99,18 +127,42 @@ def _copy_product_assets(source: Path, stage_assets: Path, product_ids: list[str
             raise FileNotFoundError(f"Product {product_id} is missing {facts}")
         if not assets.is_dir():
             raise FileNotFoundError(f"Product {product_id} is missing {assets}/")
+        media_files = sorted(
+            p for p in assets.iterdir()
+            if p.is_file() and p.suffix.lower() in MEDIA_TYPES
+            and MEDIA_TYPES[p.suffix.lower()] in {"image", "video"}
+        )
         copied: list[Path] = []
-        for media in sorted(assets.iterdir()):
-            if not media.is_file() or media.suffix.lower() not in MEDIA_TYPES:
-                continue
+        for asset_number, media in enumerate(media_files, 1):
             target = stage_assets / f"P{rank:02d}__{media.name}"
             shutil.copy2(media, target)
             copied.append(target)
+            asset_index[f"P{rank}-A{asset_number:02d}"] = target
         if not copied:
             raise FileNotFoundError(f"Product {product_id} has no supported media in assets/")
         by_rank[rank] = copied
-    return by_rank
+    return by_rank, asset_index
 
+
+def _copy_shared_assets(source: Path, stage_assets: Path) -> tuple[list[Path], dict[str, Path]]:
+    shared: list[Path] = []
+    index: dict[str, Path] = {}
+    shared_root = source / "assets"
+    if not shared_root.is_dir():
+        return shared, index
+    media_files = sorted(
+        p for p in shared_root.iterdir()
+        if p.is_file() and p.suffix.lower() in MEDIA_TYPES
+        and MEDIA_TYPES[p.suffix.lower()] in {"image", "video"}
+    )
+    for asset_number, media in enumerate(media_files, 1):
+        target = stage_assets / f"X__{media.name}"
+        shutil.copy2(media, target)
+        shared.append(target)
+        index[f"X-A{asset_number:02d}"] = target
+        # Ad Agent currently emits X-Axx IDs and older scripts use X-xx.
+        index[f"X-{asset_number:02d}"] = target
+    return shared, index
 
 def _write_staged_multi(
     source: Path, stage: Path, narration_audio: Path | None = None
@@ -125,20 +177,13 @@ def _write_staged_multi(
     (stage / ".openmontage-multi-stage").write_text("generated\n", encoding="utf-8")
     assets_dir = stage / "assets"
     assets_dir.mkdir()
-    product_assets = _copy_product_assets(source, assets_dir, product_ids)
-
-    shared_assets: list[Path] = []
-    shared_root = source / "assets"
-    if shared_root.is_dir():
-        for media in sorted(shared_root.iterdir()):
-            if media.is_file() and media.suffix.lower() in MEDIA_TYPES:
-                target = assets_dir / f"X__{media.name}"
-                shutil.copy2(media, target)
-                shared_assets.append(target)
+    product_assets, asset_index = _copy_product_assets(source, assets_dir, product_ids)
+    shared_assets, shared_index = _copy_shared_assets(source, assets_dir)
+    asset_index.update(shared_index)
 
     title, sections = _parse_script(script_path)
     product_map = _script_product_map(script_path, sections)
-    asset_map = _script_asset_map(script_path, sections)
+    asset_map = _script_asset_map(script_path, sections, asset_index)
     scene_lines = []
     for index, section in enumerate(sections, 1):
         rank = product_map.get(section["id"])
@@ -161,24 +206,17 @@ def _write_staged_multi(
 
         requested_assets = asset_map.get(section["id"], [])
         if requested_assets:
-            search_space = (
-                product_assets[rank]
-                if rank is not None
-                else [media for group in product_assets.values() for media in group] + shared_assets
-            )
-            chosen = []
-            for requested in requested_assets:
-                matches = [media for media in search_space if media.name.split("__", 1)[-1] == requested]
-                if not matches:
-                    raise FileNotFoundError(
-                        f"Script section {section['id']} explicitly references missing asset {requested!r}"
-                    )
-                if len(matches) > 1:
+            if rank is not None:
+                wrong_product = [
+                    path.name for path in requested_assets
+                    if path.name.startswith("P") and not path.name.startswith(f"P{rank:02d}__")
+                ]
+                if wrong_product:
                     raise ValueError(
-                        f"Script section {section['id']} asset {requested!r} is ambiguous; "
-                        "add product:N metadata to identify its product"
+                        f"Script section {section['id']} is tagged product: {rank} "
+                        f"but references media from another product: {wrong_product}"
                     )
-                chosen.append(matches[0])
+            chosen = requested_assets
         else:
             videos = [p for p in candidates if MEDIA_TYPES.get(p.suffix.lower()) == "video"]
             images = [p for p in candidates if MEDIA_TYPES.get(p.suffix.lower()) == "image"]

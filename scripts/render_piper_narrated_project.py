@@ -13,6 +13,16 @@ from integrations.amazon_video_agent.importer import import_project,_parse_scrip
 from tools.video.video_compose import VideoCompose
 from schemas.artifacts import validate_artifact
 ASIN="B08S3M2HKL"; MODEL="en_US-ljspeech-medium"
+REMOTION_PROCESS_TIMEOUT_SECONDS=1800
+REMOTION_CONCURRENCY=2
+
+def remotion_render_options():
+    """Keep full-length renders on native Remotion with an explicit process limit."""
+    return {
+        "remotion_process_timeout_seconds": REMOTION_PROCESS_TIMEOUT_SECONDS,
+        "remotion_concurrency": REMOTION_CONCURRENCY,
+    }
+
 def text_from(path):
     _,sections=_parse_script(path)
     text=" ".join(s["text"] for s in sections)
@@ -87,12 +97,12 @@ def main():
         raise RuntimeError("Imported narration WAV missing from isolated project workspace")
     (root/"narrated_edit_decisions.json").write_text(json.dumps(decisions,indent=2)+"\n")
     a.output.parent.mkdir(parents=True,exist_ok=True)
-    result=VideoCompose().execute({"operation":"render","edit_decisions":decisions,"asset_manifest":render_manifest,"audio_path":str(audio_for_render.resolve()),"output_path":str(a.output.resolve()),"profile":"youtube_landscape","script_text":text_from(a.source_project/"script.md"),"remotion_concurrency":2})
+    result=VideoCompose().execute({"operation":"render","edit_decisions":decisions,"asset_manifest":render_manifest,"audio_path":str(audio_for_render.resolve()),"output_path":str(a.output.resolve()),"profile":"youtube_landscape","script_text":text_from(a.source_project/"script.md"),**remotion_render_options()})
     if not result.success: raise RuntimeError("Remotion render failed: "+str(result.error))
     if not a.output.is_file() or a.output.stat().st_size<100000: raise RuntimeError("MP4 missing/invalid")
     final_review=(result.data or {}).get("final_review")
     if not isinstance(final_review,dict) or final_review.get("status")!="pass":
         raise RuntimeError("Final review did not pass: "+str(final_review))
-    report={"provider":"Piper","model":MODEL,"female_voice":True,"fallback":False,"audio_duration_seconds":round(duration,2),"visual_cuts":len(decisions["cuts"]),"staged_assets":len(render_manifest["assets"]),"final_review":final_review}
+    report={"provider":"Piper","model":MODEL,"female_voice":True,"fallback":False,"audio_duration_seconds":round(duration,2),"visual_cuts":len(decisions["cuts"]),"staged_assets":len(render_manifest["assets"]),"remotion_process_timeout_seconds":REMOTION_PROCESS_TIMEOUT_SECONDS,"remotion_concurrency":REMOTION_CONCURRENCY,"final_review":final_review}
     a.output.with_suffix(".report.json").write_text(json.dumps(report,indent=2,default=str)+"\n")
 if __name__=="__main__": main()

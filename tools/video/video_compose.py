@@ -203,6 +203,15 @@ class VideoCompose(BaseTool):
                     "networks). The subprocess timeout is widened to match."
                 ),
             },
+            "remotion_process_timeout_seconds": {
+                "type": "integer",
+                "minimum": 1,
+                "description": (
+                    "Maximum wall-clock time for the Remotion subprocess in seconds. "
+                    "This is separate from remotion_timeout_ms, which controls Remotion "
+                    "browser setup and delayRender waits."
+                ),
+            },
             "remotion_browser_executable": {
                 "type": "string",
                 "description": (
@@ -255,6 +264,7 @@ class VideoCompose(BaseTool):
         "quality", "fps", "workspace_path", "public_dir", "strict",
         "strict_check", "skip_contrast", "snapshots",
         "remotion_browser_executable", "remotion_concurrency",
+        "remotion_process_timeout_seconds",
     ]
     side_effects = ["writes video file to output_path"]
     user_visible_verification = [
@@ -959,6 +969,19 @@ class VideoCompose(BaseTool):
 
         visit(value)
         return len(staged_by_source)
+
+    @staticmethod
+    def _resolve_remotion_process_timeout(
+        scene_count: int, requested_seconds: int | None = None
+    ) -> int:
+        """Resolve the subprocess wall-clock limit without changing Remotion's delayRender timeout."""
+        calculated = max(600, int(scene_count) * 15)
+        if requested_seconds is None:
+            return calculated
+        requested = int(requested_seconds)
+        if requested < 1:
+            raise ValueError("remotion_process_timeout_seconds must be at least 1")
+        return max(calculated, requested)
 
     @staticmethod
     def _append_remotion_browser_executable(
@@ -1726,6 +1749,8 @@ class VideoCompose(BaseTool):
                 remotion_inputs["remotion_timeout_ms"] = inputs["remotion_timeout_ms"]
             if inputs.get("remotion_browser_executable") is not None:
                 remotion_inputs["remotion_browser_executable"] = inputs["remotion_browser_executable"]
+            if inputs.get("remotion_process_timeout_seconds") is not None:
+                remotion_inputs["remotion_process_timeout_seconds"] = inputs["remotion_process_timeout_seconds"]
             if inputs.get("remotion_concurrency") is not None:
                 remotion_inputs["remotion_concurrency"] = inputs["remotion_concurrency"]
             if inputs.get("public_dir") is not None:
@@ -2159,7 +2184,9 @@ class VideoCompose(BaseTool):
 
             remotion_timeout_ms = inputs.get("remotion_timeout_ms")
             scene_count = len(props.get("scenes") or props.get("cuts") or [])
-            subprocess_timeout = max(600, scene_count * 15)
+            subprocess_timeout = self._resolve_remotion_process_timeout(
+                scene_count, inputs.get("remotion_process_timeout_seconds")
+            )
             if remotion_timeout_ms:
                 try:
                     ms = int(remotion_timeout_ms)
@@ -2187,8 +2214,9 @@ class VideoCompose(BaseTool):
             return ToolResult(
                 success=False,
                 error=(
-                    f"Remotion render timed out after {e.timeout}s. If the headless "
-                    "browser is slow to start, raise remotion_timeout_ms (ms)."
+                    f"Remotion render timed out after exceeding its subprocess wall-clock limit of {e.timeout}s. "
+                    "Raise remotion_process_timeout_seconds after reviewing the expected render "
+                    "duration. remotion_timeout_ms separately controls browser setup and delayRender."
                 ),
             )
         except Exception as e:

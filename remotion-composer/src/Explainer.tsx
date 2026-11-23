@@ -774,7 +774,15 @@ const SceneRenderer: React.FC<{ cut: Cut; theme: ThemeConfig }> = ({ cut, theme 
   const animation = cut.animation || cut.transform?.animation;
 
   if (cut.source && isImage(cut.source)) {
-    return maybeWrapWithBg(<ImageScene src={cut.source} animation={animation} fit={cut.image_fit} backgroundColor={cut.backgroundColor || theme.backgroundColor} vignette={cut.image_vignette ?? true} />);
+    return maybeWrapWithBg(
+      <ImageScene
+        src={cut.source}
+        animation={animation}
+        fit={cut.image_fit}
+        backgroundColor={cut.backgroundColor || theme.backgroundColor}
+        vignette={cut.image_vignette ?? true}
+      />,
+    );
   }
 
   if (cut.source && isVideo(cut.source)) {

@@ -21,7 +21,13 @@ PROJECT_ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{2,59}")
 
 
 def _multi_config(source: Path) -> tuple[str, dict[str, Any]]:
-    config_name = "list.yaml" if (source / "list.yaml").is_file() else "compare.yaml"
+    has_list = (source / "list.yaml").is_file()
+    has_compare = (source / "compare.yaml").is_file()
+    if has_list and has_compare:
+        raise ValueError("A multi-product project cannot contain both list.yaml and compare.yaml")
+    if not has_list and not has_compare:
+        raise FileNotFoundError("Multi-product project requires list.yaml or compare.yaml")
+    config_name = "list.yaml" if has_list else "compare.yaml"
     path = source / config_name
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):

@@ -6,70 +6,114 @@ from pathlib import Path
 
 import yaml
 
-from integrations.amazon_video_agent.importer import _parse_scenes
-from integrations.amazon_video_agent.list_adapter import _write_staged_list, _script_product_map
+from integrations.amazon_video_agent.importer import _parse_scenes, _parse_script
+from integrations.amazon_video_agent.list_adapter import (
+    _script_product_map,
+    _stage_single,
+    _write_staged_multi,
+)
 from scripts.render_piper_narrated_project import EDGE_VOICES, build_edit_decisions
 
 
-class AmazonListAdapterTests(unittest.TestCase):
-    def _make_list_project(self, root: Path) -> Path:
+class AmazonProjectAdapterTests(unittest.TestCase):
+    def _make_multi_project(self, root: Path, kind: str = "list") -> Path:
         projects = root / "projects"
-        list_project = projects / "TOP3-EXAMPLE"
-        list_project.mkdir(parents=True)
+        name = "TOP3-EXAMPLE" if kind == "list" else "COMPARE-EXAMPLE"
+        project = projects / name
+        project.mkdir(parents=True)
+        product_ids = ["B000000001", "B000000002", "B000000003"] if kind == "list" else ["B000000001", "B000000002"]
         config = {
-            "title": "Top 3 sample products",
-            "products": [
-                {"id": "B000000001", "label": "Best overall"},
-                {"id": "B000000002", "label": "Best compact"},
-                {"id": "B000000003", "label": "Best for travel"},
-            ],
-            "order": "countdown",
+            "title": "Top 3 sample products" if kind == "list" else "Product comparison",
+            "products": ([{"id": x, "label": f"Pick {i}"} for i, x in enumerate(product_ids, 1)]
+                         if kind == "list" else product_ids),
+            "category": "sample category",
+            "audience": "sample audience",
         }
-        (list_project / "list.yaml").write_text(
-            yaml.safe_dump(config, sort_keys=False), encoding="utf-8"
-        )
-        (list_project / "script.md").write_text(
-            "# TITLE: Top 3 sample products\n"
-            "## hook\n[1] Here are three options worth considering. | product: all | p: 1\n"
-            "## item_3\n[2] This is the third pick for travel. | product: 3 | p: 1\n"
-            "## item_2\n[3] This is the second pick for compact use. | product: 2 | p: 1\n"
-            "## item_1\n[4] This is my top overall pick. | product: 1 | p: 1\n",
-            encoding="utf-8",
-        )
-        for rank in range(1, 4):
-            product = projects / f"B00000000{rank}" / "assets"
-            product.mkdir(parents=True)
-            (product / f"photo-{rank}.jpg").write_bytes(b"image-fixture")
-            (projects / f"B00000000{rank}" / "facts.yaml").write_text(
-                f"product_name: Product {rank}\n", encoding="utf-8"
+        config_name = "list.yaml" if kind == "list" else "compare.yaml"
+        (project / config_name).write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+        if kind == "list":
+            script = (
+                "# TITLE: Top 3 sample products\n"
+                "## hook\n[1] Here are three options worth considering. | product: all | p: 1\n"
+                "## item_3\n[2] This is the third pick for travel. | product: 3 | p: 1\n"
+                "## item_2\n[3] This is the second pick for compact use. | product: 2 | p: 1\n"
+                "## item_1\n[4] This is my top overall pick. | product: 1 | p: 1\n"
             )
-        return list_project
+        else:
+            script = (
+                "# TITLE: Product comparison\n"
+                "## intro\n[1] Here are the two products. | product: all | p: 1\n"
+                "## product_1\n[2] First product details. | product: 1 | p: 1\n"
+                "## product_2\n[3] Second product details. | product: 2 | p: 1\n"
+                "## verdict\n[4] Here is who each product suits. | product: all | p: 1\n"
+            )
+        (project / "script.md").write_text(script, encoding="utf-8")
+        for rank, product_id in enumerate(product_ids, 1):
+            product = projects / product_id
+            (product / "assets").mkdir(parents=True)
+            (product / "assets" / f"photo-{rank}.jpg").write_bytes(b"image-fixture")
+            (product / "assets" / f"clip-{rank}.mp4").write_bytes(b"video-fixture")
+            (product / "facts.yaml").write_text(f"product_name: Product {rank}\n", encoding="utf-8")
+        return project
 
-    def test_list_adapter_stages_product_specific_assets_and_scenes(self):
+    def test_list_adapter_stages_rank_specific_assets_and_scenes(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            source = self._make_list_project(root)
-            staged = _write_staged_list(source, root / "stage" / "source")
+            source = self._make_multi_project(root, "list")
+            staged = _write_staged_multi(source, root / "stage" / "source")
             scenes = _parse_scenes(staged / "scenes.md")
             self.assertEqual(len(scenes), 4)
             self.assertTrue(scenes[1]["refs"][0].startswith("P03__"))
             self.assertTrue(scenes[2]["refs"][0].startswith("P02__"))
             self.assertTrue(scenes[3]["refs"][0].startswith("P01__"))
-            self.assertTrue((staged / "facts.yaml").is_file())
-            self.assertTrue((staged / "script.md").is_file())
-            self.assertEqual(len(list((staged / "assets").iterdir())), 3)
+            self.assertEqual(len(list((staged / "assets").iterdir())), 6)
             self.assertTrue((source / "list.yaml").is_file())
 
-    def test_list_script_product_metadata_is_parsed(self):
+    def test_compare_adapter_accepts_two_products_and_maps_product_sections(self):
         with tempfile.TemporaryDirectory() as temp:
-            source = self._make_list_project(Path(temp))
-            from integrations.amazon_video_agent.importer import _parse_script
+            root = Path(temp)
+            source = self._make_multi_project(root, "compare")
+            staged = _write_staged_multi(source, root / "stage" / "source")
+            scenes = _parse_scenes(staged / "scenes.md")
+            self.assertEqual(len(scenes), 4)
+            self.assertTrue(scenes[1]["refs"][0].startswith("P01__"))
+            self.assertTrue(scenes[2]["refs"][0].startswith("P02__"))
+            self.assertEqual(len(list((staged / "assets").iterdir())), 4)
+
+    def test_product_metadata_is_parsed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = self._make_multi_project(Path(temp), "list")
             _, sections = _parse_script(source / "script.md")
             mapping = _script_product_map(source / "script.md", sections)
             self.assertIsNone(mapping["1"])
             self.assertEqual(mapping["2"], 3)
             self.assertEqual(mapping["3"], 2)
             self.assertEqual(mapping["4"], 1)
+
+    def test_selected_voice_audio_is_staged_without_writing_to_source(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = self._make_multi_project(root, "list")
+            voice = root / "selected-voice.wav"
+            voice.write_bytes(b"test voice data")
+            staged = _write_staged_multi(source, root / "stage" / "source", voice)
+            self.assertEqual((staged / "out" / "voice.wav").read_bytes(), voice.read_bytes())
+            self.assertFalse((source / "out").exists())
+
+    def test_single_product_voice_is_staged_without_source_mutation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "projects" / "B000000001"
+            (source / "assets").mkdir(parents=True)
+            (source / "facts.yaml").write_text("product_name: Sample\n", encoding="utf-8")
+            (source / "script.md").write_text("# TITLE: Sample\n## intro\n[1] Hello.\n", encoding="utf-8")
+            (source / "scenes.md").write_text("[s01] type: product | ref: photo.jpg | prompt: product\n", encoding="utf-8")
+            (source / "assets" / "photo.jpg").write_bytes(b"image-fixture")
+            voice = root / "voice.wav"
+            voice.write_bytes(b"voice-fixture")
+            staged = _stage_single(source, root / "staged", voice)
+            self.assertEqual((staged / "out" / "voice.wav").read_bytes(), voice.read_bytes())
+            self.assertFalse((source / "out").exists())
 
     def test_edge_voice_options_match_ad_agent_four_voice_set(self):
         self.assertEqual(EDGE_VOICES, {
@@ -79,19 +123,18 @@ class AmazonListAdapterTests(unittest.TestCase):
             "edge_male_2": ("en-US-BrianMultilingualNeural", "male"),
         })
 
-
-    def test_manual_workflow_exposes_list_and_four_edge_voice_options(self):
+    def test_manual_workflow_exposes_all_project_modes_and_edge_voices(self):
         workflow = (
             Path(__file__).resolve().parents[2]
             / ".github" / "workflows" / "amazon-video-agent-narrated.yml"
         ).read_text(encoding="utf-8")
-        self.assertIn("edge_female", workflow)
-        self.assertIn("edge_female_2", workflow)
-        self.assertIn("edge_male", workflow)
-        self.assertIn("edge_male_2", workflow)
+        for voice in EDGE_VOICES:
+            self.assertIn(voice, workflow)
+        self.assertIn('if [ -f "$SOURCE/compare.yaml" ]', workflow)
         self.assertIn('if [ -f "$SOURCE/list.yaml" ]', workflow)
         self.assertIn('VOICE: ${{ inputs.voice }}', workflow)
         self.assertEqual(workflow.count("default: false"), 2)
+        self.assertIn("default: edge_female", workflow)
 
     def test_list_edit_uses_scene_product_image_not_round_robin_image(self):
         script = {

@@ -38,6 +38,29 @@ def build_edit_decisions(script,manifest,plan,stills):
     return {"version":"1.0","tailPaddingSeconds":0,"cuts":cuts,"overlays":overlays,"renderer_family":"product-reveal","render_runtime":"remotion","composition_mode":"templated","metadata":{"project_id":"amazon-"+ASIN,"deliverable":"full_narrated_video","duration_seconds":script["total_duration_seconds"],"aspect_ratio":"16:9","fps":30,"audio":"narration","audio_expected":True,"voice_provider":"piper","voice_model":MODEL,"voice_fallback":False,"music_enabled":False,"external_assets_allowed":False,"generated_assets_allowed":False,"source_policy":"existing_supplied_media_only","notes":["Separate full-length edit; preview edit_decisions.json is not read or changed.","Existing product clips and stills only; product_image_61 excluded due conflicting 48-foot graphic."]}}
 
 
+def manifest_with_absolute_paths(project_root, manifest):
+    """Resolve imported project-relative asset paths for Remotion's media stager.
+
+    The importer intentionally stores portable paths such as
+    assets/video/clip.mp4. Remotion's stager receives the repository as its
+    working directory, so those paths must be anchored to this isolated
+    project before _stage_remotion_media can copy them into public/.
+    """
+    root=Path(project_root).resolve()
+    resolved=json.loads(json.dumps(manifest))
+    for asset in resolved.get("assets",[]):
+        raw=Path(asset["path"])
+        candidate=(root/raw).resolve() if not raw.is_absolute() else raw.resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError as exc:
+            raise ValueError(f"Asset path escapes isolated project workspace: {asset['path']}") from exc
+        if not candidate.is_file():
+            raise FileNotFoundError(f"Imported asset is missing before Remotion staging: {candidate}")
+        asset["path"]=str(candidate)
+    return resolved
+
+
 def main():
     p=argparse.ArgumentParser()
     for key in ("source-project","model","work-dir","output"): p.add_argument("--"+key,type=Path,required=True)
@@ -58,17 +81,18 @@ def main():
     if not stills: raise RuntimeError("No approved product stills")
     decisions=build_edit_decisions(script,manifest,plan,stills)
     validate_artifact("edit_decisions",decisions)
+    render_manifest=manifest_with_absolute_paths(project,manifest)
     audio_for_render=project/"assets"/"audio"/"voice.wav"
     if not audio_for_render.is_file():
         raise RuntimeError("Imported narration WAV missing from isolated project workspace")
-    (root/"narrated_edit_decisions.json").write_text(json.dumps(decisions,indent=2)+"\n")
+    (root/"narrated_edit_decisions.json").write_text(json.dumps(decisions,indent=2)+"\\n")
     a.output.parent.mkdir(parents=True,exist_ok=True)
-    result=VideoCompose().execute({"operation":"render","edit_decisions":decisions,"asset_manifest":manifest,"audio_path":str(audio_for_render),"output_path":str(a.output),"profile":"youtube_landscape","script_text":text_from(a.source_project/"script.md"),"remotion_concurrency":2})
+    result=VideoCompose().execute({"operation":"render","edit_decisions":decisions,"asset_manifest":render_manifest,"audio_path":str(audio_for_render.resolve()),"output_path":str(a.output.resolve()),"profile":"youtube_landscape","script_text":text_from(a.source_project/"script.md"),"remotion_concurrency":2})
     if not result.success: raise RuntimeError("Remotion render failed: "+str(result.error))
     if not a.output.is_file() or a.output.stat().st_size<100000: raise RuntimeError("MP4 missing/invalid")
     final_review=(result.data or {}).get("final_review")
     if not isinstance(final_review,dict) or final_review.get("status")!="pass":
         raise RuntimeError("Final review did not pass: "+str(final_review))
-    report={"provider":"Piper","model":MODEL,"female_voice":True,"fallback":False,"audio_duration_seconds":round(duration,2),"visual_cuts":len(decisions["cuts"]),"final_review":final_review}
-    a.output.with_suffix(".report.json").write_text(json.dumps(report,indent=2,default=str)+"\n")
+    report={"provider":"Piper","model":MODEL,"female_voice":True,"fallback":False,"audio_duration_seconds":round(duration,2),"visual_cuts":len(decisions["cuts"]),"staged_assets":len(render_manifest["assets"]),"final_review":final_review}
+    a.output.with_suffix(".report.json").write_text(json.dumps(report,indent=2,default=str)+"\\n")
 if __name__=="__main__": main()

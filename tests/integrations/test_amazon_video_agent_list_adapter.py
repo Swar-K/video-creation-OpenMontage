@@ -149,6 +149,13 @@ class AmazonProjectAdapterTests(unittest.TestCase):
         ]
         for voice in configured:
             self.assertIn(voice, workflow)
+        config_path = Path("amazon-video-agent/config.yaml")
+        if config_path.is_file():
+            ad_config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+            configured_options = ad_config["voice"]["options"]
+            for voice_key, voice_config in configured_options.items():
+                self.assertIn(voice_key, workflow)
+                self.assertIn(voice_config["provider"], {"elevenlabs", "edge", "openai", "inworld", "openrouter"})
         self.assertIn("confirm_paid_tts", workflow)
         self.assertIn("--voice-config ../amazon-video-agent/config.yaml", workflow)
         self.assertEqual(workflow.count("default: false"), 3)

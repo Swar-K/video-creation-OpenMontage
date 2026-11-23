@@ -178,6 +178,8 @@ def main():
     p.add_argument("--work-dir",type=Path,required=True)
     p.add_argument("--output",type=Path,required=True)
     p.add_argument("--voice",default="edge_female")
+    p.add_argument("--renderer",choices=("adagent","remotion"),default="adagent")
+    p.add_argument("--ad-agent-root",type=Path,default=None)
     p.add_argument("--voice-config",type=Path,default=None)
     p.add_argument("--approve-tts",action="store_true")
     p.add_argument("--approve-render",action="store_true")
@@ -257,16 +259,32 @@ def main():
     )
     (root/"narrated_edit_decisions.json").write_text(json.dumps(decisions,indent=2)+"\n")
     a.output.parent.mkdir(parents=True,exist_ok=True)
-    result=VideoCompose().execute({
-        "operation":"render","edit_decisions":decisions,"asset_manifest":render_manifest,
-        "audio_path":str(audio_for_render.resolve()),"output_path":str(a.output.resolve()),
-        "profile":"youtube_landscape","script_text":narration,**remotion_render_options()
-    })
-    if not result.success:
-        raise RuntimeError("Remotion render failed: "+str(result.error))
+    renderer_details={}
+    if a.renderer=="adagent":
+        from integrations.amazon_video_agent.adagent_native_renderer import render_with_ad_agent
+        ad_root=(a.ad_agent_root or source.parents[1]).expanduser().resolve()
+        silent=a.output.with_name(a.output.stem+"-silent.mp4")
+        renderer_details=render_with_ad_agent(
+            ad_agent_root=ad_root, project_root=project, script=script,
+            manifest=render_manifest, plan=plan, output_path=silent,
+            narration_audio=audio_for_render, final_output=a.output,
+            script_text=narration, edit_decisions=decisions,
+        )
+        silent.unlink(missing_ok=True)
+        final_review=renderer_details["final_review"]
+    else:
+        result=VideoCompose().execute({
+            "operation":"render","edit_decisions":decisions,"asset_manifest":render_manifest,
+            "audio_path":str(audio_for_render.resolve()),"output_path":str(a.output.resolve()),
+            "profile":"youtube_landscape","script_text":narration,**remotion_render_options()
+        })
+        if not result.success:
+            raise RuntimeError("Remotion render failed: "+str(result.error))
+        if not a.output.is_file() or a.output.stat().st_size<100000:
+            raise RuntimeError("MP4 missing/invalid")
+        final_review=(result.data or {}).get("final_review")
     if not a.output.is_file() or a.output.stat().st_size<100000:
         raise RuntimeError("MP4 missing/invalid")
-    final_review=(result.data or {}).get("final_review")
     if not isinstance(final_review,dict) or final_review.get("status")!="pass":
         raise RuntimeError("Final review did not pass: "+str(final_review))
     report={
@@ -277,8 +295,9 @@ def main():
         "tts_chunks":voice_info.get("chunks",1),
         "audio_duration_seconds":round(duration,2),"visual_cuts":len(decisions["cuts"]),
         "staged_assets":len(render_manifest["assets"]),
-        "remotion_process_timeout_seconds":REMOTION_PROCESS_TIMEOUT_SECONDS,
-        "remotion_concurrency":REMOTION_CONCURRENCY,"audio_peak_limit_dbfs":-2.0,
+        "renderer":a.renderer, **renderer_details,
+        "remotion_process_timeout_seconds":REMOTION_PROCESS_TIMEOUT_SECONDS if a.renderer=="remotion" else None,
+        "remotion_concurrency":REMOTION_CONCURRENCY if a.renderer=="remotion" else None,"audio_peak_limit_dbfs":-2.0,
         "audio_source":f"{voice_provider} narration only; source-video audio is not muxed",
         "visual_asset_cleanup":{
             "processed_video_assets":len(cleaned_video_assets),

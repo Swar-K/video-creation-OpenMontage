@@ -115,6 +115,9 @@ class PiperNarratedProjectTests(unittest.TestCase):
 
     def test_workflow_is_project_selectable_and_keeps_three_false_by_default_approvals(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("renderer:", workflow)
+        self.assertIn("default: adagent", workflow)
+        self.assertIn("--renderer \"$RENDERER\"", workflow)
         self.assertIn("project_id:", workflow)
         self.assertIn("inputs.project_id", workflow)
         self.assertIn("confirm_tts_generation:", workflow)

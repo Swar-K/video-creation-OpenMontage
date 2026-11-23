@@ -7,6 +7,12 @@ on:
         required: true
         type: string
         default: "B08S3M2HKL"
+      renderer:
+        description: "Rendering engine: Ad Agent native OpenCV renderer or Remotion"
+        required: true
+        type: choice
+        default: adagent
+        options: [adagent, remotion]
       voice:
         description: "Choose any voice configured in Ad Agent config.yaml, or Piper female"
         required: true
@@ -53,6 +59,7 @@ jobs:
     env:
       PROJECT_ID: ${{ inputs.project_id }}
       VOICE: ${{ inputs.voice }}
+      RENDERER: ${{ inputs.renderer }}
       ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       INWORLD_API_KEY: ${{ secrets.INWORLD_API_KEY }}
@@ -76,7 +83,7 @@ jobs:
         working-directory: openmontage
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt piper-tts edge-tts
+          pip install -r requirements.txt piper-tts edge-tts opencv-python-headless
           npm --prefix remotion-composer ci
           sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Download pinned Piper voice only when selected
@@ -123,6 +130,8 @@ jobs:
             --work-dir .tmp/projects
             --output "$OUTPUT"
             --voice "$VOICE"
+            --renderer "$RENDERER"
+            --ad-agent-root ../amazon-video-agent
             --voice-config ../amazon-video-agent/config.yaml
             --approve-tts --approve-render
           )

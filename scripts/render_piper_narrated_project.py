@@ -16,16 +16,27 @@ ASIN="B08S3M2HKL"; MODEL="en_US-ljspeech-medium"
 REMOTION_PROCESS_TIMEOUT_SECONDS=1800
 REMOTION_CONCURRENCY=2
 
-# The supplied 1280x720 screen-recorded clips include a Windows playback bar.
-# Four door-installation clips also contain the Windows activation watermark
-# and a stationary mouse pointer in the lower-right / center-left areas.
+# All ten supplied 1280x720 screen-recorded clips contain the Windows
+# playback strip and activation watermark. Four door-installation clips also
+# show a stationary mouse pointer over a clear wall/floor area.
 WINDOWS_WATERMARK_ASSETS = {
+    "2026-10-23 17-27-34 - Trim7.mp4",
+    "2026-10-23 17-27-34 - Trim10.mp4",
+    "2026-10-23 17-27-34 - Trim.mp4",
+    "2026-10-23 17-27-34 - Trim5.mp4",
+    "2026-10-23 17-27-34 - Trim2.mp4",
+    "2026-10-23 17-27-34 - Trim6.mp4",
+    "2026-10-23 17-27-34 - Trim9.mp4",
+    "2026-10-23 17-27-34 - Trim3.mp4",
+    "2026-10-23 17-27-34 - Trim8.mp4",
+    "2026-10-23 17-27-34 - Trim4.mp4",
+}
+CURSOR_ASSETS = {
     "2026-10-23 17-27-34 - Trim7.mp4",
     "2026-10-23 17-27-34 - Trim10.mp4",
     "2026-10-23 17-27-34 - Trim9.mp4",
     "2026-10-23 17-27-34 - Trim8.mp4",
 }
-CURSOR_ASSETS = set(WINDOWS_WATERMARK_ASSETS)
 APPROVED_STILL_FILENAMES = {"product_image_51.jpg", "product_image_81.jpg"}
 
 def remotion_render_options():

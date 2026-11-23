@@ -6,7 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.render_piper_narrated_project import text_from
+from scripts.render_piper_narrated_project import build_edit_decisions, text_from
+from schemas.artifacts import validate_artifact
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "render_piper_narrated_project.py"
@@ -26,6 +27,34 @@ class PiperNarratedProjectTests(unittest.TestCase):
                 text_from(source),
                 "First narration line. Final narration line.",
             )
+
+    def test_generated_edit_decisions_match_schema(self):
+        script = {
+            "total_duration_seconds": 20.0,
+            "sections": [
+                {"id": "s01", "label": "product-demo", "start_seconds": 0.0, "end_seconds": 20.0}
+            ],
+        }
+        manifest = {
+            "assets": [
+                {"id": "clip1", "type": "video", "path": "assets/video/door.mp4"},
+                {"id": "still1", "type": "image", "path": "assets/images/product.jpg"},
+            ]
+        }
+        plan = {
+            "scenes": [
+                {
+                    "script_section_id": "s01",
+                    "required_assets": [{"type": "video", "description": "door.mp4"}],
+                }
+            ]
+        }
+        decisions = build_edit_decisions(
+            script, manifest, plan, [manifest["assets"][1]]
+        )
+        validate_artifact("edit_decisions", decisions)
+        self.assertEqual(decisions["cuts"][1]["transform"]["animation"], "subtle-zoom-in")
+        self.assertEqual(decisions["overlays"][0]["position"], "top-center")
 
     def test_cli_fails_closed_without_both_approvals(self):
         with tempfile.TemporaryDirectory() as tmp:

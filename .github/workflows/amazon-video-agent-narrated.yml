@@ -8,7 +8,7 @@ on:
         type: string
         default: "B08S3M2HKL"
       voice:
-        description: "Narration voice: Piper female or one of the four Ad Agent Microsoft Edge voices"
+        description: "Choose any voice configured in Ad Agent config.yaml, or Piper female"
         required: true
         type: choice
         default: edge_female

@@ -1,0 +1,94 @@
+name: Alien Draft Seal — approved Piper narration
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_tts_generation:
+        description: "Approve free full female Piper narration generation"
+        required: true
+        type: boolean
+        default: false
+      confirm_full_render:
+        description: "Approve full-length narrated MP4 rendering"
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: alien-draft-seal-narrated
+  cancel-in-progress: false
+jobs:
+  safety-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce independent approvals
+        if: github.event.inputs.confirm_tts_generation != 'true' || github.event.inputs.confirm_full_render != 'true'
+        run: |
+          echo "::error::Both TTS and full-render approvals are required. No media will be generated."
+          exit 1
+      - name: Confirm approvals
+        if: github.event.inputs.confirm_tts_generation == 'true' && github.event.inputs.confirm_full_render == 'true'
+        run: echo "Both approvals are present for this run only."
+  render:
+    needs: safety-gate
+    if: github.event.inputs.confirm_tts_generation == 'true' && github.event.inputs.confirm_full_render == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with: {path: openmontage}
+      - uses: actions/checkout@v4
+        with:
+          repository: Swar-K/amazon-video-agent
+          ref: main
+          path: amazon-video-agent
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.4"
+          cache: npm
+          cache-dependency-path: openmontage/remotion-composer/package-lock.json
+      - name: Install dependencies
+        working-directory: openmontage
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt piper-tts
+          npm --prefix remotion-composer ci
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Download pinned female voice and verify
+        run: |
+          set -euo pipefail
+          mkdir -p openmontage/.tmp/piper
+          BASE="https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ljspeech/medium"
+          curl -fL "$BASE/en_US-ljspeech-medium.onnx" -o openmontage/.tmp/piper/en_US-ljspeech-medium.onnx
+          curl -fL "$BASE/en_US-ljspeech-medium.onnx.json" -o openmontage/.tmp/piper/en_US-ljspeech-medium.onnx.json
+          curl -fL "$BASE/MODEL_CARD" -o openmontage/.tmp/piper/MODEL_CARD
+          echo "6f52a751e2349abe7a76735eb09dc1875298c77ea2342ffd2fef79ff81b87f22  openmontage/.tmp/piper/en_US-ljspeech-medium.onnx" | sha256sum -c -
+          grep -qi "US English female" openmontage/.tmp/piper/MODEL_CARD
+          grep -qi "public domain" openmontage/.tmp/piper/MODEL_CARD
+      - name: Generate and render
+        working-directory: openmontage
+        run: |
+          python scripts/render_piper_narrated_project.py \
+            --source-project ../amazon-video-agent/projects/B08S3M2HKL \
+            --model .tmp/piper/en_US-ljspeech-medium.onnx \
+            --work-dir .tmp/projects \
+            --output out/alien-draft-seal-full-narrated.mp4 \
+            --approve-tts --approve-render
+      - name: Validate audio/video and decode
+        working-directory: openmontage
+        run: |
+          set -euo pipefail
+          ffprobe -v error -show_entries stream=codec_type,codec_name -of json out/alien-draft-seal-full-narrated.mp4 > out/streams.json
+          python -c "import json; s=json.load(open('out/streams.json'))['streams']; assert any(x.get('codec_type')=='video' and x.get('codec_name')=='h264' for x in s); assert any(x.get('codec_type')=='audio' for x in s)"
+          ffmpeg -v error -i out/alien-draft-seal-full-narrated.mp4 -f null -
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alien-draft-seal-full-narrated-video
+          path: |
+            openmontage/out/alien-draft-seal-full-narrated.mp4
+            openmontage/out/alien-draft-seal-full-narrated.report.json
+            openmontage/.tmp/piper/MODEL_CARD
+          if-no-files-found: error
+          retention-days: 14

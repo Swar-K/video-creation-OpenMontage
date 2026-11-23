@@ -130,7 +130,7 @@ class AmazonProjectAdapterTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         for voice in EDGE_VOICES:
             self.assertIn(voice, workflow)
-        self.assertIn('if [ -f "$SOURCE/compare.yaml" ]', workflow)
+        self.assertIn('"$SOURCE/compare.yaml"', workflow)
         self.assertIn('if [ -f "$SOURCE/list.yaml" ]', workflow)
         self.assertIn('VOICE: ${{ inputs.voice }}', workflow)
         self.assertEqual(workflow.count("default: false"), 2)

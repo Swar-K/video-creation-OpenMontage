@@ -87,12 +87,17 @@ class AmazonProjectAdapterTests(unittest.TestCase):
             self.assertEqual(scenes[3]["refs"], ["P01__photo-1.jpg", "P02__photo-2.jpg"])
             self.assertEqual(len(list((staged / "assets").iterdir())), 5)
 
-    def test_explicit_script_assets_are_parsed(self):
+    def test_missing_optional_shared_asset_id_falls_back_without_source_assets(self):
         with tempfile.TemporaryDirectory() as temp:
             source = self._make_multi_project(Path(temp), "list")
-            _, sections = _parse_script(source / "script.md")
-            mapping = _script_asset_map(source / "script.md", sections, {"P3-A02": Path("P03__photo-3.jpg")})
-            self.assertEqual(mapping["2"], [Path("P03__photo-3.jpg")])
+            script = source / "script.md"
+            script.write_text(
+                "# TITLE: list\\n## criteria\\n[9] General advice. | assets: X-01 | p: 1\\n",
+                encoding="utf-8",
+            )
+            _, sections = _parse_script(script)
+            mapping = _script_asset_map(script, sections, {})
+            self.assertNotIn("9", mapping)
 
     def test_product_metadata_is_parsed(self):
         with tempfile.TemporaryDirectory() as temp:

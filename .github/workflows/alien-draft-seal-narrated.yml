@@ -20,10 +20,15 @@ concurrency:
 jobs:
   safety-gate:
     runs-on: ubuntu-latest
-    if: github.event.inputs.confirm_tts_generation != 'true' || github.event.inputs.confirm_full_render != 'true'
     steps:
-      - run: echo "::error::Both TTS and full-render approvals are required. No media will be generated."
-        shell: bash
+      - name: Enforce independent approvals
+        if: github.event.inputs.confirm_tts_generation != 'true' || github.event.inputs.confirm_full_render != 'true'
+        run: |
+          echo "::error::Both TTS and full-render approvals are required. No media will be generated."
+          exit 1
+      - name: Confirm approvals
+        if: github.event.inputs.confirm_tts_generation == 'true' && github.event.inputs.confirm_full_render == 'true'
+        run: echo "Both approvals are present for this run only."
   render:
     needs: safety-gate
     if: github.event.inputs.confirm_tts_generation == 'true' && github.event.inputs.confirm_full_render == 'true'
@@ -65,7 +70,12 @@ jobs:
       - name: Generate and render
         working-directory: openmontage
         run: |
-          python scripts/render_piper_narrated_project.py             --source-project ../amazon-video-agent/projects/B08S3M2HKL             --model .tmp/piper/en_US-ljspeech-medium.onnx             --work-dir .tmp/projects             --output out/alien-draft-seal-full-narrated.mp4             --approve-tts --approve-render
+          python scripts/render_piper_narrated_project.py \
+            --source-project ../amazon-video-agent/projects/B08S3M2HKL \
+            --model .tmp/piper/en_US-ljspeech-medium.onnx \
+            --work-dir .tmp/projects \
+            --output out/alien-draft-seal-full-narrated.mp4 \
+            --approve-tts --approve-render
       - name: Validate audio/video and decode
         working-directory: openmontage
         run: |

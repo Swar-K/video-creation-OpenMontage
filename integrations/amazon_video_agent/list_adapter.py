@@ -95,6 +95,16 @@ def _script_asset_map(
         resolved = []
         for asset_id in [x.strip() for x in assets.group("assets").split(",") if x.strip()]:
             if asset_id not in asset_index:
+                # Some existing Ad Agent list scripts retain X-xx references
+                # after their optional shared assets/ folder was removed.
+                # Match Ad Agent's renderer: ignore unavailable shared IDs and
+                # let the section use product-specific fallback footage.
+                if asset_id.startswith("X-") and not any(key.startswith("X-") for key in asset_index):
+                    print(
+                        f"WARNING: {asset_id} in section {match.group('id')} has no shared source asset; "
+                        "using product footage for this section."
+                    )
+                    continue
                 raise FileNotFoundError(
                     f"Script section {match.group('id')} references unknown Ad Agent asset ID {asset_id!r}"
                 )

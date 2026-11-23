@@ -6,7 +6,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.render_piper_narrated_project import build_edit_decisions, text_from
+from scripts.render_piper_narrated_project import (
+    build_edit_decisions,
+    manifest_with_absolute_paths,
+    text_from,
+)
 from schemas.artifacts import validate_artifact
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -55,6 +59,38 @@ class PiperNarratedProjectTests(unittest.TestCase):
         validate_artifact("edit_decisions", decisions)
         self.assertEqual(decisions["cuts"][1]["transform"]["animation"], "subtle-zoom-in")
         self.assertEqual(decisions["overlays"][0]["position"], "top-center")
+
+    def test_manifest_paths_resolve_inside_project_and_preserve_spaces(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            media = project / "assets" / "video" / "door trim clip.mp4"
+            media.parent.mkdir(parents=True)
+            media.write_bytes(b"fixture")
+            original = {
+                "assets": [
+                    {"id": "door-clip", "type": "video", "path": "assets/video/door trim clip.mp4"}
+                ]
+            }
+            resolved = manifest_with_absolute_paths(project, original)
+            self.assertEqual(resolved["assets"][0]["path"], str(media.resolve()))
+            self.assertTrue(Path(resolved["assets"][0]["path"]).is_file())
+            self.assertEqual(original["assets"][0]["path"], "assets/video/door trim clip.mp4")
+
+    def test_manifest_path_missing_fails_before_remotion(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(FileNotFoundError, "missing before Remotion staging"):
+                manifest_with_absolute_paths(
+                    Path(tmp),
+                    {"assets": [{"id": "missing", "type": "video", "path": "assets/video/missing.mp4"}]},
+                )
+
+    def test_manifest_path_cannot_escape_project_workspace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(ValueError, "escapes isolated project workspace"):
+                manifest_with_absolute_paths(
+                    Path(tmp),
+                    {"assets": [{"id": "outside", "type": "video", "path": "../outside.mp4"}]},
+                )
 
     def test_cli_fails_closed_without_both_approvals(self):
         with tempfile.TemporaryDirectory() as tmp:

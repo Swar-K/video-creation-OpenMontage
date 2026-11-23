@@ -127,7 +127,9 @@ class PiperNarratedProjectTests(unittest.TestCase):
         self.assertIn("delogo=x=345:y=375:w=30:h=35", affected)
         self.assertIn("crop=iw:ih-28:0:0", affected)
         self.assertIn("pad=1920:1080", affected)
-        self.assertNotIn("delogo", clean_source_video_filter("2026-10-23 17-27-34 - Trim.mp4"))
+        ordinary_clip = clean_source_video_filter("2026-10-23 17-27-34 - Trim.mp4")
+        self.assertIn("delogo=x=1010:y=620:w=250:h=55", ordinary_clip)
+        self.assertNotIn("delogo=x=345:y=375", ordinary_clip)
 
     def test_only_neutral_product_stills_are_selected(self):
         manifest = {

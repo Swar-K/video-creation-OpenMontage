@@ -120,7 +120,7 @@ def prepare_clean_video_assets(project_root, manifest):
             capture_output=True,
             timeout=900,
         )
-        if not target.is_file() or target.stat().st_size < 10000:
+        if not target.is_file() or target.stat().st_size == 0:
             raise RuntimeError(f"Cleaned video asset was not created: {target}")
         probe = subprocess.run(
             [

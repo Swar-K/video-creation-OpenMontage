@@ -13,7 +13,8 @@ from integrations.amazon_video_agent.list_adapter import (
     _stage_single,
     _write_staged_multi,
 )
-from scripts.render_piper_narrated_project import EDGE_VOICES, build_edit_decisions
+from scripts.render_piper_narrated_project import build_edit_decisions
+from integrations.amazon_video_agent.tts_adapter import _split_text
 
 
 class AmazonProjectAdapterTests(unittest.TestCase):
@@ -36,7 +37,7 @@ class AmazonProjectAdapterTests(unittest.TestCase):
             script = (
                 "# TITLE: Top 3 sample products\n"
                 "## hook\n[1] Here are three options worth considering. | product: all | p: 1\n"
-                "## item_3\n[2] This is the third pick for travel. | product: 3 | assets: photo-3.jpg | p: 1\n"
+                "## item_3\n[2] This is the third pick for travel. | product: 3 | assets: P3-A02 | p: 1\n"
                 "## item_2\n[3] This is the second pick for compact use. | product: 2 | p: 1\n"
                 "## item_1\n[4] This is my top overall pick. | product: 1 | p: 1\n"
             )
@@ -44,7 +45,7 @@ class AmazonProjectAdapterTests(unittest.TestCase):
             script = (
                 "# TITLE: Product comparison\n"
                 "## intro\n[1] Here are the two products. | product: all | p: 1\n"
-                "## product_1\n[2] First product details. | product: 1 | assets: photo-1.jpg | p: 1\n"
+                "## product_1\n[2] First product details. | product: 1 | assets: P1-A02 | p: 1\n"
                 "## product_2\n[3] Second product details. | product: 2 | p: 1\n"
                 "## verdict\n[4] Here is who each product suits. | product: all | p: 1\n"
             )
@@ -85,8 +86,8 @@ class AmazonProjectAdapterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             source = self._make_multi_project(Path(temp), "list")
             _, sections = _parse_script(source / "script.md")
-            mapping = _script_asset_map(source / "script.md", sections)
-            self.assertEqual(mapping["2"], ["photo-3.jpg"])
+            mapping = _script_asset_map(source / "script.md", sections, {"P3-A02": Path("P03__photo-3.jpg")})
+            self.assertEqual(mapping["2"], [Path("P03__photo-3.jpg")])
 
     def test_product_metadata_is_parsed(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -123,26 +124,29 @@ class AmazonProjectAdapterTests(unittest.TestCase):
             self.assertEqual((staged / "out" / "voice.wav").read_bytes(), voice.read_bytes())
             self.assertFalse((source / "out").exists())
 
-    def test_edge_voice_options_match_ad_agent_four_voice_set(self):
-        self.assertEqual(EDGE_VOICES, {
-            "edge_female": ("en-US-AvaMultilingualNeural", "female"),
-            "edge_female_2": ("en-US-EmmaMultilingualNeural", "female"),
-            "edge_male": ("en-US-AndrewMultilingualNeural", "male"),
-            "edge_male_2": ("en-US-BrianMultilingualNeural", "male"),
-        })
-
-    def test_manual_workflow_exposes_all_project_modes_and_edge_voices(self):
+    def test_workflow_exposes_every_voice_configured_by_ad_agent(self):
         workflow = (
             Path(__file__).resolve().parents[2]
             / ".github" / "workflows" / "amazon-video-agent-narrated.yml"
         ).read_text(encoding="utf-8")
-        for voice in EDGE_VOICES:
+        configured = [
+            "eleven_female", "eleven_female_2", "eleven_male", "eleven_male_2",
+            "edge_female", "edge_female_2", "edge_male", "edge_male_2",
+            "openai_female", "openai_male", "inworld_female", "inworld_male",
+            "openrouter_voxtral",
+        ]
+        for voice in configured:
             self.assertIn(voice, workflow)
-        self.assertIn('"$SOURCE/compare.yaml"', workflow)
-        self.assertIn('if [ -f "$SOURCE/list.yaml" ]', workflow)
-        self.assertIn('VOICE: ${{ inputs.voice }}', workflow)
-        self.assertEqual(workflow.count("default: false"), 2)
-        self.assertIn("default: edge_female", workflow)
+        self.assertIn("confirm_paid_tts", workflow)
+        self.assertIn("--voice-config ../amazon-video-agent/config.yaml", workflow)
+        self.assertEqual(workflow.count("default: false"), 3)
+
+    def test_tts_text_chunks_respect_provider_limit_and_preserve_text(self):
+        source = ("This is sentence one. " * 20) + ("Unicode café text. " * 10)
+        chunks = _split_text(source, 100)
+        self.assertGreater(len(chunks), 1)
+        self.assertTrue(all(len(chunk.encode("utf-16-le")) // 2 <= 100 for chunk in chunks))
+        self.assertEqual(" ".join(chunks), " ".join(source.split()))
 
     def test_list_edit_uses_scene_product_image_not_round_robin_image(self):
         script = {

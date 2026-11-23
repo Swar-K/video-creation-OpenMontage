@@ -20,25 +20,33 @@ import yaml
 
 
 def _split_text(text: str, limit: int) -> list[str]:
-    """Split narration at sentence/word boundaries without dropping text."""
-    text = re.sub(r"\\s+", " ", text).strip()
+    """Split narration at sentence/word boundaries; limit counts UTF-16 units."""
+    text = re.sub(r"\s+", " ", text).strip()
+
+    def units(value: str) -> int:
+        return len(value.encode("utf-16-le")) // 2
+
     chunks: list[str] = []
     while text:
-        if len(text) <= limit:
+        if units(text) <= limit:
             chunks.append(text)
             break
-        cut = max(text.rfind(". ", 0, limit), text.rfind("? ", 0, limit),
-                  text.rfind("! ", 0, limit), text.rfind("; ", 0, limit))
-        if cut < limit // 2:
-            cut = text.rfind(" ", 0, limit)
-        if cut <= 0:
-            cut = limit
+        cut = min(len(text), limit)
+        while cut > 0 and units(text[:cut]) > limit:
+            cut -= 1
+        sentence_cut = max(text.rfind(". ", 0, cut), text.rfind("? ", 0, cut),
+                           text.rfind("! ", 0, cut), text.rfind("; ", 0, cut))
+        if sentence_cut >= cut // 2:
+            cut = sentence_cut + 1
         else:
-            cut += 1
+            word_cut = text.rfind(" ", 0, cut)
+            if word_cut > 0:
+                cut = word_cut
+        if cut <= 0:
+            raise ValueError("Unable to split TTS text within the provider's input limit.")
         chunks.append(text[:cut].strip())
         text = text[cut:].strip()
     return [x for x in chunks if x]
-
 
 def _edge(text: str, voice: dict, out: Path) -> None:
     import edge_tts
@@ -138,7 +146,7 @@ def _inworld(text: str, voice: dict, settings: dict, out: Path, ledger_path: Pat
     ledger["inworld_characters_used"] = used + actual
     ledger["inworld_model_id"] = voice.get("model_id") or settings.get("model_id", "inworld-tts-2")
     ledger["inworld_voice_id"] = voice.get("voice_id") or voice.get("voice")
-    ledger_path.write_text(json.dumps(ledger, indent=2) + "\\n")
+    ledger_path.write_text(json.dumps(ledger, indent=2) + "\n")
 
 
 def _openrouter(text: str, voice: dict, settings: dict, out: Path, approve_paid: bool) -> None:
@@ -249,7 +257,7 @@ def synthesize_voice(text: str, voice_key: str, config_path: Path, output_wav: P
             _validate_audio(audio)
             rendered.append(audio)
         concat = temp_dir / "concat.txt"
-        concat.write_text("".join(f"file '{p.as_posix()}'\\n" for p in rendered), encoding="utf-8")
+        concat.write_text("".join(f"file '{p.as_posix()}'\n" for p in rendered), encoding="utf-8")
         subprocess.run(
             ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "concat",
              "-safe", "0", "-i", str(concat), "-ar", "22050", "-ac", "1",

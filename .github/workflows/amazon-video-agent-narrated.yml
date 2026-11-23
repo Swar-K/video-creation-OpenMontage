@@ -12,7 +12,7 @@ on:
         required: true
         type: choice
         default: edge_female
-        options: [piper_female, edge_female, edge_female_2, edge_male, edge_male_2]
+        options: [piper_female, eleven_female, eleven_female_2, eleven_male, eleven_male_2, edge_female, edge_female_2, edge_male, edge_male_2, openai_female, openai_male, inworld_female, inworld_male, openrouter_voxtral]
       confirm_tts_generation:
         description: "Approve narration generation with the selected voice"
         required: true
@@ -20,6 +20,11 @@ on:
         default: false
       confirm_full_render:
         description: "Approve full-length narrated MP4 rendering"
+        required: true
+        type: boolean
+        default: false
+      confirm_paid_tts:
+        description: "Approve usage-billed TTS providers (ElevenLabs/OpenAI/OpenRouter or Inworld overage)"
         required: true
         type: boolean
         default: false
@@ -48,6 +53,10 @@ jobs:
     env:
       PROJECT_ID: ${{ inputs.project_id }}
       VOICE: ${{ inputs.voice }}
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      INWORLD_API_KEY: ${{ secrets.INWORLD_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
     steps:
       - uses: actions/checkout@v4
         with: {path: openmontage}
@@ -114,10 +123,14 @@ jobs:
             --work-dir .tmp/projects
             --output "$OUTPUT"
             --voice "$VOICE"
+            --voice-config ../amazon-video-agent/config.yaml
             --approve-tts --approve-render
           )
           if [ "$VOICE" = "piper_female" ]; then
             args+=(--model .tmp/piper/en_US-ljspeech-medium.onnx)
+          fi
+          if [ "${{ inputs.confirm_paid_tts }}" = "true" ]; then
+            args+=(--approve-paid-tts)
           fi
           python scripts/render_piper_narrated_project.py "${args[@]}"
       - name: Validate audio/video and decode

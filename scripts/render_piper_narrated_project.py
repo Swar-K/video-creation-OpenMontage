@@ -64,6 +64,9 @@ def main():
     result=VideoCompose().execute({"operation":"render","edit_decisions":decisions,"asset_manifest":manifest,"audio_path":str(audio_for_render),"output_path":str(a.output),"profile":"youtube_landscape","script_text":text_from(a.source_project/"script.md"),"remotion_concurrency":2})
     if not result.success: raise RuntimeError("Remotion render failed: "+str(result.error))
     if not a.output.is_file() or a.output.stat().st_size<100000: raise RuntimeError("MP4 missing/invalid")
-    report={"provider":"Piper","model":MODEL,"female_voice":True,"fallback":False,"audio_duration_seconds":round(duration,2),"visual_cuts":len(cuts),"final_review":(result.data or {}).get("final_review")}
+    final_review=(result.data or {}).get("final_review")
+    if not isinstance(final_review,dict) or final_review.get("status")!="pass":
+        raise RuntimeError("Final review did not pass: "+str(final_review))
+    report={"provider":"Piper","model":MODEL,"female_voice":True,"fallback":False,"audio_duration_seconds":round(duration,2),"visual_cuts":len(decisions["cuts"]),"final_review":final_review}
     a.output.with_suffix(".report.json").write_text(json.dumps(report,indent=2,default=str)+"\n")
 if __name__=="__main__": main()

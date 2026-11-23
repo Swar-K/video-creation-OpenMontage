@@ -122,6 +122,25 @@ def prepare_clean_video_assets(project_root, manifest):
         )
         if not target.is_file() or target.stat().st_size < 10000:
             raise RuntimeError(f"Cleaned video asset was not created: {target}")
+        probe = subprocess.run(
+            [
+                "ffprobe", "-v", "error", "-show_entries",
+                "stream=codec_type,width,height", "-of", "json", str(target),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        streams = json.loads(probe.stdout).get("streams", [])
+        video = next(
+            (stream for stream in streams if stream.get("codec_type") == "video"),
+            None,
+        )
+        if not video or (video.get("width"), video.get("height")) != (1920, 1080):
+            raise RuntimeError(f"Cleaned video is not 1920x1080: {target}")
+        if any(stream.get("codec_type") == "audio" for stream in streams):
+            raise RuntimeError(f"Cleaned source video unexpectedly contains audio: {target}")
         asset["path"] = str(target.resolve())
         processed.append(source.name)
     if not processed:

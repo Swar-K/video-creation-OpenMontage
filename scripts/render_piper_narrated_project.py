@@ -109,105 +109,6 @@ def limit_narration_peaks(source, destination):
     return destination
 
 
-def clean_source_video_filter(filename):
-    """Return the cleanup filter for the supplied screen-recorded source clip."""
-    filters = []
-    if filename in WINDOWS_WATERMARK_ASSETS:
-        # The watermark is baked into the lower-right floor area.
-        filters.append("delogo=x=1010:y=620:w=250:h=55:show=0")
-    if filename in CURSOR_ASSETS:
-        # Remove the fixed mouse pointer from the blank door/wall area.
-        filters.append("delogo=x=345:y=375:w=30:h=35:show=0")
-    # The playback control strip occupies the final 28 source pixels. Crop it,
-    # then preserve the full remaining image with a 16:9 canvas and narrow
-    # black mattes rather than stretching or cutting off the product/hand.
-    filters.extend([
-        "crop=iw:ih-28:0:0",
-        "scale=1920:-2:flags=lanczos",
-        "pad=1920:1080:0:(oh-ih)/2:color=black",
-        "setsar=1",
-    ])
-    return ",".join(filters)
-
-
-def prepare_clean_video_assets(project_root, manifest):
-    """Create clean, silent 1080p derivatives without changing source assets."""
-    root = Path(project_root).resolve()
-    cleaned = json.loads(json.dumps(manifest))
-    processed = []
-    for asset in cleaned.get("assets", []):
-        if asset.get("type") != "video":
-            continue
-        source = Path(asset["path"]).resolve()
-        try:
-            source.relative_to(root)
-        except ValueError as exc:
-            raise ValueError(
-                f"Video asset path escapes isolated project workspace: {source}"
-            ) from exc
-        if not source.is_file():
-            raise FileNotFoundError(f"Video source missing before cleanup: {source}")
-        target_dir = root / "assets" / "video_clean"
-        target_dir.mkdir(parents=True, exist_ok=True)
-        target = target_dir / f"{source.stem}.clean.mp4"
-        subprocess.run(
-            [
-                "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
-                "-i", str(source),
-                "-vf", clean_source_video_filter(source.name),
-                "-an",
-                "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
-                "-pix_fmt", "yuv420p", "-movflags", "+faststart",
-                str(target),
-            ],
-            check=True,
-            capture_output=True,
-            timeout=900,
-        )
-        if not target.is_file() or target.stat().st_size == 0:
-            raise RuntimeError(f"Cleaned video asset was not created: {target}")
-        probe = subprocess.run(
-            [
-                "ffprobe", "-v", "error", "-show_entries",
-                "stream=codec_type,width,height", "-of", "json", str(target),
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        streams = json.loads(probe.stdout).get("streams", [])
-        video = next(
-            (stream for stream in streams if stream.get("codec_type") == "video"),
-            None,
-        )
-        if not video or (video.get("width"), video.get("height")) != (1920, 1080):
-            raise RuntimeError(f"Cleaned video is not 1920x1080: {target}")
-        if any(stream.get("codec_type") == "audio" for stream in streams):
-            raise RuntimeError(f"Cleaned source video unexpectedly contains audio: {target}")
-        asset["path"] = str(target.resolve())
-        processed.append(source.name)
-    if not processed:
-        raise RuntimeError("No source video assets were available for visual cleanup")
-    return cleaned, processed
-
-
-def approved_product_stills(manifest):
-    """Select only neutral product/installation imagery with supportable content."""
-    selected = [
-        asset for asset in manifest.get("assets", [])
-        if asset.get("type") == "image"
-        and Path(asset["path"]).name in APPROVED_STILL_FILENAMES
-    ]
-    present = {Path(asset["path"]).name for asset in selected}
-    missing = APPROVED_STILL_FILENAMES - present
-    if missing:
-        raise RuntimeError(
-            "Approved clean product stills missing: " + ", ".join(sorted(missing))
-        )
-    return selected
-
-
 def text_from(path):
     _,sections=_parse_script(path)
     text=" ".join(s["text"] for s in sections)
@@ -230,7 +131,7 @@ def build_edit_decisions(script,manifest,plan,stills,project_id):
         still=stills[i%len(stills)]
         cuts.append({"id":s["id"]+"-still","source":still["id"],"in_seconds":round(start+clip_span,3),"out_seconds":round(end,3),"layer":"primary","transition_in":"cut","transition_out":"cut","transform":{"animation":"static"},"image_fit":"contain","image_vignette":False,"backgroundColor":"#FFFFFF"})
         overlays.append({"type":"section_title","in_seconds":round(start,3),"out_seconds":round(min(end,start+2.4),3),"text":s["label"].replace("-"," ").title(),"position":"top-center"})
-    return {"version":"1.0","tailPaddingSeconds":0,"cuts":cuts,"overlays":overlays,"renderer_family":"product-reveal","render_runtime":"remotion","composition_mode":"templated","metadata":{"project_id":"amazon-"+project_id,"deliverable":"full_narrated_video","duration_seconds":script["total_duration_seconds"],"aspect_ratio":"16:9","fps":30,"audio":"narration","audio_expected":True,"voice_provider":"piper","voice_model":MODEL,"voice_fallback":False,"music_enabled":False,"external_assets_allowed":False,"generated_assets_allowed":False,"source_policy":"existing_supplied_media_only","notes":["Separate full-length edit; preview edit_decisions.json is not read or changed.","Only clean supplied product stills are used; promotional claim graphics and the conflicting 48-foot image are excluded.", "All supplied video clips are staged as silent, control-free 1080p derivatives; watermark cleanup covers all ten clips and cursor cleanup covers the four affected installation clips."]}}
+    return {"version":"1.0","tailPaddingSeconds":0,"cuts":cuts,"overlays":overlays,"renderer_family":"product-reveal","render_runtime":"remotion","composition_mode":"templated","metadata":{"project_id":"amazon-"+project_id,"deliverable":"full_narrated_video","duration_seconds":script["total_duration_seconds"],"aspect_ratio":"16:9","fps":30,"audio":"narration","audio_expected":True,"voice_provider":"piper","voice_model":MODEL,"voice_fallback":False,"music_enabled":False,"external_assets_allowed":False,"generated_assets_allowed":False,"source_policy":"existing_supplied_media_only","notes":["Separate full-length edit; preview edit_decisions.json is not read or changed.","Only supplied project images and video are used.", "Source video is normalized to 1080p without product-specific cropping or overlay removal."]}}
 
 
 def manifest_with_absolute_paths(project_root, manifest):
@@ -265,6 +166,10 @@ def main():
     project_id=a.source_project.name
     if not project_id or not all(c.isalnum() or c in "-_" for c in project_id):
         raise SystemExit("Project directory name must contain only letters, digits, hyphens, or underscores")
+    if not a.source_project.is_dir(): raise FileNotFoundError(f"Project directory not found: {a.source_project}")
+    for required in ("facts.yaml", "script.md", "scenes.md", "assets"):
+        if not (a.source_project / required).exists():
+            raise FileNotFoundError(f"Selected project is missing required input: {required}")
     if not a.model.is_file() or not Path(str(a.model)+".json").is_file() or not shutil.which("piper"): raise RuntimeError("Pinned Piper runtime/model unavailable; no fallback")
     audio=a.source_project/"out"/"voice.wav"; audio.parent.mkdir(parents=True,exist_ok=True)
     proc=subprocess.run(["piper","--model",str(a.model),"--output_file",str(audio),"--length-scale","1.0","--sentence-silence","0.25"],input=text_from(a.source_project/"script.md"),text=True,encoding="utf-8",capture_output=True,timeout=900)
@@ -272,7 +177,7 @@ def main():
     with wave.open(str(audio),"rb") as w:
         duration=w.getnframes()/w.getframerate()
         if duration<30: raise RuntimeError("Narration duration invalid")
-    project=import_project(a.source_project,"amazon-"+ASIN+"-narrated",projects_dir=a.work_dir,media_mode="copy")
+    project=import_project(a.source_project,"amazon-"+project_id+"-narrated",projects_dir=a.work_dir,media_mode="copy")
     root=project/"artifacts"; script=json.loads((root/"script.json").read_text()); manifest=json.loads((root/"asset_manifest.json").read_text()); plan=json.loads((root/"scene_plan.json").read_text())
     stills=approved_product_stills(manifest,plan)
     decisions=build_edit_decisions(script,manifest,plan,stills,project_id)

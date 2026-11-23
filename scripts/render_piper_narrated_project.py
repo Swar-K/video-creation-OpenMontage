@@ -17,6 +17,26 @@ def text_from(path):
     text=" ".join(s["text"] for s in sections)
     if not text.strip(): raise ValueError("No narration in script")
     return text
+def build_edit_decisions(script,manifest,plan,stills):
+    scenes={x["script_section_id"]:x for x in plan["scenes"]}
+    cuts=[]; overlays=[]
+    for i,s in enumerate(script["sections"]):
+        start,end=float(s["start_seconds"]),float(s["end_seconds"])
+        if end<=start: continue
+        clip=None
+        for ref in scenes.get(s["id"],{}).get("required_assets",[]):
+            if ref.get("type")=="video":
+                clip=next((x for x in manifest["assets"] if x["type"]=="video" and Path(x["path"]).name==ref["description"]),None)
+                if clip: break
+        span=end-start; clip_span=min(4,span*.42) if clip else 0
+        if clip_span>=1:
+            cuts.append({"id":s["id"]+"-video","source":clip["id"],"in_seconds":round(start,3),"out_seconds":round(start+clip_span,3),"layer":"primary","transition_in":"cut","transition_out":"cut"})
+        still=stills[i%len(stills)]
+        cuts.append({"id":s["id"]+"-still","source":still["id"],"in_seconds":round(start+clip_span,3),"out_seconds":round(end,3),"layer":"primary","transition_in":"cut","transition_out":"cut","transform":{"animation":"subtle-zoom-in"}})
+        overlays.append({"type":"section_title","in_seconds":round(start,3),"out_seconds":round(min(end,start+2.4),3),"text":s["label"].replace("-"," ").title(),"position":"top-center"})
+    return {"version":"1.0","tailPaddingSeconds":0,"cuts":cuts,"overlays":overlays,"renderer_family":"product-reveal","render_runtime":"remotion","composition_mode":"templated","metadata":{"project_id":"amazon-"+ASIN,"deliverable":"full_narrated_video","duration_seconds":script["total_duration_seconds"],"aspect_ratio":"16:9","fps":30,"audio":"narration","audio_expected":True,"voice_provider":"piper","voice_model":MODEL,"voice_fallback":False,"music_enabled":False,"external_assets_allowed":False,"generated_assets_allowed":False,"source_policy":"existing_supplied_media_only","notes":["Separate full-length edit; preview edit_decisions.json is not read or changed.","Existing product clips and stills only; product_image_61 excluded due conflicting 48-foot graphic."]}}
+
+
 def main():
     p=argparse.ArgumentParser()
     for key in ("source-project","model","work-dir","output"): p.add_argument("--"+key,type=Path,required=True)
@@ -35,24 +55,13 @@ def main():
     root=project/"artifacts"; script=json.loads((root/"script.json").read_text()); manifest=json.loads((root/"asset_manifest.json").read_text()); plan=json.loads((root/"scene_plan.json").read_text())
     stills=[x for x in manifest["assets"] if x["type"]=="image" and "product_image_61" not in x["path"].lower()]
     if not stills: raise RuntimeError("No approved product stills")
-    scenes={x["script_section_id"]:x for x in plan["scenes"]}; cuts=[]; overlays=[]
-    for i,s in enumerate(script["sections"]):
-        start,end=float(s["start_seconds"]),float(s["end_seconds"])
-        if end<=start: continue
-        clip=None
-        for ref in scenes.get(s["id"],{}).get("required_assets",[]):
-            if ref.get("type")=="video":
-                clip=next((x for x in manifest["assets"] if x["type"]=="video" and Path(x["path"]).name==ref["description"]),None)
-                if clip: break
-        span=end-start; clip_span=min(4,span*.42) if clip else 0
-        if clip_span>=1: cuts.append({"id":s["id"]+"-video","source":clip["id"],"in_seconds":round(start,3),"out_seconds":round(start+clip_span,3),"layer":"primary","transition_in":"cut","transition_out":"cut"})
-        still=stills[i%len(stills)]
-        cuts.append({"id":s["id"]+"-still","source":still["id"],"in_seconds":round(start+clip_span,3),"out_seconds":round(end,3),"layer":"primary","transition_in":"cut","transition_out":"cut","animation":"subtle-zoom-in"})
-        overlays.append({"type":"section_title","in_seconds":round(start,3),"out_seconds":round(min(end,start+2.4),3),"text":s["label"].replace("-"," ").title(),"position":"top"})
-    decisions={"version":"1.0","tailPaddingSeconds":0,"cuts":cuts,"overlays":overlays,"renderer_family":"product-reveal","render_runtime":"remotion","composition_mode":"templated","metadata":{"project_id":"amazon-"+ASIN,"deliverable":"full_narrated_video","duration_seconds":script["total_duration_seconds"],"aspect_ratio":"16:9","fps":30,"audio":"narration","audio_expected":True,"voice_provider":"piper","voice_model":MODEL,"voice_fallback":False,"music_enabled":False,"external_assets_allowed":False,"generated_assets_allowed":False,"source_policy":"existing_supplied_media_only","notes":["Separate full-length edit; preview edit_decisions.json is not read or changed.","Existing product clips and stills only; product_image_61 excluded due conflicting 48-foot graphic."]}}
+    decisions=build_edit_decisions(script,manifest,plan,stills)
+    audio_for_render=project/"assets"/"audio"/"voice.wav"
+    if not audio_for_render.is_file():
+        raise RuntimeError("Imported narration WAV missing from isolated project workspace")
     (root/"narrated_edit_decisions.json").write_text(json.dumps(decisions,indent=2)+"\n")
     a.output.parent.mkdir(parents=True,exist_ok=True)
-    result=VideoCompose().execute({"operation":"render","edit_decisions":decisions,"asset_manifest":manifest,"audio_path":str(project/"assets"/"audio"/"voice.wav"),"output_path":str(a.output),"profile":"youtube_landscape","script_text":text_from(a.source_project/"script.md"),"remotion_concurrency":2})
+    result=VideoCompose().execute({"operation":"render","edit_decisions":decisions,"asset_manifest":manifest,"audio_path":str(audio_for_render),"output_path":str(a.output),"profile":"youtube_landscape","script_text":text_from(a.source_project/"script.md"),"remotion_concurrency":2})
     if not result.success: raise RuntimeError("Remotion render failed: "+str(result.error))
     if not a.output.is_file() or a.output.stat().st_size<100000: raise RuntimeError("MP4 missing/invalid")
     report={"provider":"Piper","model":MODEL,"female_voice":True,"fallback":False,"audio_duration_seconds":round(duration,2),"visual_cuts":len(cuts),"final_review":(result.data or {}).get("final_review")}

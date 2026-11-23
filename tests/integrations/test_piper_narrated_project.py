@@ -123,7 +123,7 @@ class PiperNarratedProjectTests(unittest.TestCase):
         self.assertEqual(workflow.count("default: false"), 3)
         self.assertIn("needs: safety-gate", workflow)
         self.assertIn("inputs.confirm_tts_generation == true", workflow)
-        self.assertIn("inputs.confirm_paid_tts == true", workflow)
+        self.assertIn('if [ "${{ inputs.confirm_paid_tts }}" = "true" ]; then', workflow)
         self.assertIn("inputs.confirm_full_render == true", workflow)
 
     def test_workflow_uses_one_project_specific_output_for_render_validation_and_upload(self):

@@ -15,7 +15,7 @@ def main():
     for key in ("source-project","model","work-dir","output"): p.add_argument("--"+key,type=Path,required=True)
     p.add_argument("--approve-tts",action="store_true"); p.add_argument("--approve-render",action="store_true")
     a=p.parse_args()
-    if not(a.approve_tts and a.approve_render): raise SystemExit("Blocked: both explicit approvals required")
+    if not(a.approve_tts and a.approve_render): raise SystemExit("Blocked: both explicit approvals are required")
     if a.source_project.name!=ASIN: raise SystemExit("Only B08S3M2HKL supported")
     if not a.model.is_file() or not Path(str(a.model)+".json").is_file() or not shutil.which("piper"): raise RuntimeError("Pinned Piper runtime/model unavailable; no fallback")
     audio=a.source_project/"out"/"voice.wav"; audio.parent.mkdir(parents=True,exist_ok=True)

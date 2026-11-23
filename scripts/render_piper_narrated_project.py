@@ -307,7 +307,7 @@ def main():
         },
         "final_review":final_review
     }
-    a.output.with_suffix(".report.json").write_text(json.dumps(report,indent=2,default=str)+"\\n")
+    a.output.with_suffix(".report.json").write_text(json.dumps(report,indent=2,default=str)+"\n")
 
 
 if __name__=="__main__":

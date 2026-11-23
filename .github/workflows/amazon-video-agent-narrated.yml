@@ -20,25 +20,27 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: amazon-video-agent-narrated-${{ github.event.inputs.project_id }}
+  group: amazon-video-agent-narrated-${{ inputs.project_id }}
   cancel-in-progress: false
 jobs:
   safety-gate:
     runs-on: ubuntu-latest
     steps:
       - name: Enforce independent approvals
-        if: github.event.inputs.confirm_tts_generation != 'true' || github.event.inputs.confirm_full_render != 'true'
+        if: inputs.confirm_tts_generation != true || inputs.confirm_full_render != true
         run: |
           echo "::error::Both TTS and full-render approvals are required. No media will be generated."
           exit 1
       - name: Confirm approvals
-        if: github.event.inputs.confirm_tts_generation == 'true' && github.event.inputs.confirm_full_render == 'true'
+        if: inputs.confirm_tts_generation == true && inputs.confirm_full_render == true
         run: echo "Both approvals are present for this run only."
   render:
     needs: safety-gate
-    if: github.event.inputs.confirm_tts_generation == 'true' && github.event.inputs.confirm_full_render == 'true'
+    if: inputs.confirm_tts_generation == true && inputs.confirm_full_render == true
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      PROJECT_ID: ${{ inputs.project_id }}
     steps:
       - uses: actions/checkout@v4
         with: {path: openmontage}
@@ -73,35 +75,46 @@ jobs:
           grep -qi "US English female" openmontage/.tmp/piper/MODEL_CARD
           grep -qi "public domain" openmontage/.tmp/piper/MODEL_CARD
       - name: Validate selected project
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
         run: |
           set -euo pipefail
-          PROJECT_ID="${{ github.event.inputs.project_id }}"
-          [[ "$PROJECT_ID" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{2,59}$ ]]
+          if [[ ! "$PROJECT_ID" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{2,59}$ ]]; then
+            echo "::error::Invalid project_id. Use 3-60 letters, digits, hyphens, or underscores."
+            exit 2
+          fi
           SOURCE="amazon-video-agent/projects/$PROJECT_ID"
           test -d "$SOURCE"
-          for required in facts.yaml script.md scenes.md assets; do test -e "$SOURCE/$required" || { echo "Missing $required in $SOURCE"; exit 2; }; done
+          for required in facts.yaml script.md scenes.md assets; do
+            test -e "$SOURCE/$required" || { echo "Missing $required in $SOURCE"; exit 2; }
+          done
       - name: Generate and render
         working-directory: openmontage
         run: |
+          set -euo pipefail
+          OUTPUT="out/$PROJECT_ID-full-narrated.mp4"
           python scripts/render_piper_narrated_project.py \
-            --source-project ../amazon-video-agent/projects/${{ github.event.inputs.project_id }} \
+            --source-project "../amazon-video-agent/projects/$PROJECT_ID" \
             --model .tmp/piper/en_US-ljspeech-medium.onnx \
             --work-dir .tmp/projects \
-            --output out/${{ github.event.inputs.project_id }}-full-narrated.mp4 \
+            --output "$OUTPUT" \
             --approve-tts --approve-render
       - name: Validate audio/video and decode
         working-directory: openmontage
         run: |
           set -euo pipefail
-          ffprobe -v error -show_entries stream=codec_type,codec_name -of json out/alien-draft-seal-full-narrated.mp4 > out/streams.json
+          OUTPUT="out/$PROJECT_ID-full-narrated.mp4"
+          test -s "$OUTPUT"
+          ffprobe -v error -show_entries stream=codec_type,codec_name -of json "$OUTPUT" > out/streams.json
           python -c "import json; s=json.load(open('out/streams.json'))['streams']; assert any(x.get('codec_type')=='video' and x.get('codec_name')=='h264' for x in s); assert any(x.get('codec_type')=='audio' for x in s)"
-          ffmpeg -v error -i out/alien-draft-seal-full-narrated.mp4 -f null -
+          ffmpeg -v error -i "$OUTPUT" -f null -
+          test -s "${OUTPUT%.mp4}.report.json"
       - uses: actions/upload-artifact@v4
         with:
-          name: amazon-${{ github.event.inputs.project_id }}-full-narrated-video
+          name: amazon-${{ inputs.project_id }}-full-narrated-video
           path: |
-            openmontage/out/alien-draft-seal-full-narrated.mp4
-            openmontage/out/alien-draft-seal-full-narrated.report.json
+            openmontage/out/${{ inputs.project_id }}-full-narrated.mp4
+            openmontage/out/${{ inputs.project_id }}-full-narrated.report.json
             openmontage/.tmp/piper/MODEL_CARD
           if-no-files-found: error
           retention-days: 14

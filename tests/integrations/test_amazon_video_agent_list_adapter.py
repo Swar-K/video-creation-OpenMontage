@@ -6,9 +6,11 @@ from pathlib import Path
 
 import yaml
 
-from integrations.amazon_video_agent.importer import _parse_scenes, _parse_script
+from integrations.amazon_video_agent.importer import MEDIA_TYPES, _parse_scenes, _parse_script
 from integrations.amazon_video_agent.list_adapter import (
     _script_asset_map,
+    _multi_config,
+    _product_ids,
     _script_product_map,
     _stage_single,
     _write_staged_multi,
@@ -157,6 +159,59 @@ class AmazonProjectAdapterTests(unittest.TestCase):
         self.assertGreater(len(chunks), 1)
         self.assertTrue(all(len(chunk.encode("utf-16-le")) // 2 <= 100 for chunk in chunks))
         self.assertEqual(" ".join(chunks), " ".join(source.split()))
+
+    def _checked_out_ad_agent_asset_index(self, source: Path) -> dict[str, Path]:
+        _, config = _multi_config(source)
+        index: dict[str, Path] = {}
+        for rank, product_id in enumerate(_product_ids(config), 1):
+            assets = source.parent / product_id / "assets"
+            media = sorted(
+                p for p in assets.iterdir()
+                if p.is_file() and p.suffix.lower() in MEDIA_TYPES
+                and MEDIA_TYPES[p.suffix.lower()] in {"image", "video"}
+            )
+            for number, path in enumerate(media, 1):
+                index[f"P{rank}-A{number:02d}"] = path
+        shared = source / "assets"
+        if shared.is_dir():
+            media = sorted(
+                p for p in shared.iterdir()
+                if p.is_file() and p.suffix.lower() in MEDIA_TYPES
+                and MEDIA_TYPES[p.suffix.lower()] in {"image", "video"}
+            )
+            for number, path in enumerate(media, 1):
+                index[f"X-A{number:02d}"] = path
+                index[f"X-{number:02d}"] = path
+        return index
+
+    def test_real_ad_agent_compare_script_asset_ids_match_checked_out_media(self):
+        root = Path("amazon-video-agent/projects")
+        source = root / "B0DK5XXVTX-B08S3M2HKL"
+        if not source.is_dir():
+            self.skipTest("Ad Agent checkout is not available in this test environment")
+        _, sections = _parse_script(source / "script.md")
+        mapping = _script_asset_map(
+            source / "script.md", sections, self._checked_out_ad_agent_asset_index(source)
+        )
+        self.assertTrue(mapping)
+        self.assertTrue(all(path.is_file() for paths in mapping.values() for path in paths))
+        self.assertEqual(len(mapping["14"]), 2)
+        self.assertTrue(any(path.parent.parent.name == "B0DK5XXVTX" for path in mapping["14"]))
+        self.assertTrue(any(path.parent.parent.name == "B08S3M2HKL" for path in mapping["14"]))
+
+    def test_real_ad_agent_list_script_asset_ids_match_checked_out_media(self):
+        root = Path("amazon-video-agent/projects")
+        source = root / "B0DK5XXVTX-B00G7009LM-B00002NCJI"
+        if not source.is_dir():
+            self.skipTest("Ad Agent checkout is not available in this test environment")
+        _, sections = _parse_script(source / "script.md")
+        mapping = _script_asset_map(
+            source / "script.md", sections, self._checked_out_ad_agent_asset_index(source)
+        )
+        self.assertTrue(mapping)
+        self.assertTrue(all(path.is_file() for paths in mapping.values() for path in paths))
+        ranks = {path.parent.parent.name for paths in mapping.values() for path in paths}
+        self.assertTrue({"B0DK5XXVTX", "B00G7009LM", "B00002NCJI"}.issubset(ranks))
 
     def test_list_edit_uses_scene_product_image_not_round_robin_image(self):
         script = {

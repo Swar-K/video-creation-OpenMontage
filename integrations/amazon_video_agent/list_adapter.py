@@ -67,6 +67,28 @@ def _script_product_map(script_path: Path, sections: list[dict[str, str]]) -> di
     return result
 
 
+def _script_asset_map(script_path: Path, sections: list[dict[str, str]]) -> dict[str, list[str]]:
+    """Read optional explicit assets: metadata from Ad Agent script lines."""
+    wanted = {section["id"] for section in sections}
+    result: dict[str, list[str]] = {}
+    line_re = re.compile(r"^\\[(?P<id>[^\\]]+)\\]\\s*(?P<body>.*)$")
+    assets_re = re.compile(r"\\|\\s*assets\\s*:\\s*(?P<assets>[^|]+)", re.I)
+    for raw in script_path.read_text(encoding="utf-8").splitlines():
+        match = line_re.match(raw.strip())
+        if not match or match.group("id") not in wanted:
+            continue
+        assets = assets_re.search(match.group("body"))
+        if assets:
+            names = [
+                Path(value.strip().strip("\\\"'")).name
+                for value in re.split(r"[;,]", assets.group("assets"))
+                if value.strip()
+            ]
+            if names:
+                result[match.group("id")] = names
+    return result
+
+
 def _copy_product_assets(source: Path, stage_assets: Path, product_ids: list[str]) -> dict[int, list[Path]]:
     by_rank: dict[int, list[Path]] = {}
     for rank, product_id in enumerate(product_ids, 1):
@@ -116,6 +138,7 @@ def _write_staged_multi(
 
     title, sections = _parse_script(script_path)
     product_map = _script_product_map(script_path, sections)
+    asset_map = _script_asset_map(script_path, sections)
     scene_lines = []
     for index, section in enumerate(sections, 1):
         rank = product_map.get(section["id"])
@@ -123,28 +146,49 @@ def _write_staged_multi(
             label_match = re.fullmatch(r"(?:item|product)_(\d+)", section["label"], re.I)
             rank = int(label_match.group(1)) if label_match else None
 
+        if rank is not None and rank not in product_assets:
+            raise ValueError(
+                f"Script section {section['id']} references product {rank}, "
+                f"but {config_name} contains only {len(product_ids)} products"
+            )
         if rank is not None:
-            if rank not in product_assets:
-                raise ValueError(
-                    f"Script section {section['id']} references product {rank}, "
-                    f"but {config_name} contains only {len(product_ids)} products"
-                )
             candidates = product_assets[rank]
         else:
-            # Intro, comparison, recap and CTA sections can show one representative
-            # asset from each product, plus optional shared project footage.
+            # Intro, comparison, recap and CTA sections can show representative
+            # media from each product, plus optional shared project footage.
             candidates = [files[0] for files in product_assets.values()]
             candidates.extend(shared_assets)
 
-        videos = [p for p in candidates if MEDIA_TYPES.get(p.suffix.lower()) == "video"]
-        images = [p for p in candidates if MEDIA_TYPES.get(p.suffix.lower()) == "image"]
-        chosen: list[Path] = []
-        if videos:
-            chosen.append(videos[(index - 1) % len(videos)])
-        if images:
-            chosen.append(images[(index - 1) % len(images)])
-        if not chosen:
-            chosen = candidates[:1]
+        requested_assets = asset_map.get(section["id"], [])
+        if requested_assets:
+            search_space = (
+                product_assets[rank]
+                if rank is not None
+                else [media for group in product_assets.values() for media in group] + shared_assets
+            )
+            chosen = []
+            for requested in requested_assets:
+                matches = [media for media in search_space if media.name.split("__", 1)[-1] == requested]
+                if not matches:
+                    raise FileNotFoundError(
+                        f"Script section {section['id']} explicitly references missing asset {requested!r}"
+                    )
+                if len(matches) > 1:
+                    raise ValueError(
+                        f"Script section {section['id']} asset {requested!r} is ambiguous; "
+                        "add product:N metadata to identify its product"
+                    )
+                chosen.append(matches[0])
+        else:
+            videos = [p for p in candidates if MEDIA_TYPES.get(p.suffix.lower()) == "video"]
+            images = [p for p in candidates if MEDIA_TYPES.get(p.suffix.lower()) == "image"]
+            chosen = []
+            if videos:
+                chosen.append(videos[(index - 1) % len(videos)])
+            if images:
+                chosen.append(images[(index - 1) % len(images)])
+            if not chosen:
+                chosen = candidates[:1]
         refs = "; ".join(p.name for p in chosen)
         scene_lines.append(
             f"[s{index:02d}] type: product | ref: {refs or 'none'} | "

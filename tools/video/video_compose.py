@@ -2566,6 +2566,7 @@ class VideoCompose(BaseTool):
         audio_spotcheck: dict[str, Any] = {
             "narration_present": False,
             "music_present": False,
+            "music_detection_status": "not_assessed_volume_metrics_cannot_identify_music",
             "unexpected_silence": False,
             "clipping_detected": False,
             "mix_intelligible": True,
@@ -2610,10 +2611,9 @@ class VideoCompose(BaseTool):
                     # Assume narration present if mean volume is reasonable
                     if mean_vol > -40:
                         audio_spotcheck["narration_present"] = True
-                    # Assume music present if audio exists (conservative)
-                    if mean_vol > -50:
-                        audio_spotcheck["music_present"] = True
-
+                    # Loudness alone cannot distinguish speech from music.
+                    # Do not label narration as music without a classifier or
+                    # source-separated analysis.
                 if max_vol is not None and max_vol > -0.5:
                     audio_spotcheck["clipping_detected"] = True
                     audio_spotcheck["issues"].append(
@@ -2792,6 +2792,7 @@ class VideoCompose(BaseTool):
                 "effectively silent", "expected audio stream is missing",
                 "ffprobe failed", "suspiciously short",
                 "tts punctuation leak",  # reading literal punctuation aloud
+                "possible clipping",  # narration peaks need correction before delivery
             ])
         ]
 

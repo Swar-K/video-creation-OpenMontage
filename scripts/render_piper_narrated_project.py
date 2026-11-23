@@ -85,7 +85,7 @@ def main():
     audio_for_render=project/"assets"/"audio"/"voice.wav"
     if not audio_for_render.is_file():
         raise RuntimeError("Imported narration WAV missing from isolated project workspace")
-    (root/"narrated_edit_decisions.json").write_text(json.dumps(decisions,indent=2)+"\\n")
+    (root/"narrated_edit_decisions.json").write_text(json.dumps(decisions,indent=2)+"\n")
     a.output.parent.mkdir(parents=True,exist_ok=True)
     result=VideoCompose().execute({"operation":"render","edit_decisions":decisions,"asset_manifest":render_manifest,"audio_path":str(audio_for_render.resolve()),"output_path":str(a.output.resolve()),"profile":"youtube_landscape","script_text":text_from(a.source_project/"script.md"),"remotion_concurrency":2})
     if not result.success: raise RuntimeError("Remotion render failed: "+str(result.error))
@@ -94,5 +94,5 @@ def main():
     if not isinstance(final_review,dict) or final_review.get("status")!="pass":
         raise RuntimeError("Final review did not pass: "+str(final_review))
     report={"provider":"Piper","model":MODEL,"female_voice":True,"fallback":False,"audio_duration_seconds":round(duration,2),"visual_cuts":len(decisions["cuts"]),"staged_assets":len(render_manifest["assets"]),"final_review":final_review}
-    a.output.with_suffix(".report.json").write_text(json.dumps(report,indent=2,default=str)+"\\n")
+    a.output.with_suffix(".report.json").write_text(json.dumps(report,indent=2,default=str)+"\n")
 if __name__=="__main__": main()

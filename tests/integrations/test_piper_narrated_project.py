@@ -116,13 +116,29 @@ class PiperNarratedProjectTests(unittest.TestCase):
     def test_workflow_is_project_selectable_and_keeps_two_false_by_default_approvals(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("project_id:", workflow)
-        self.assertIn("github.event.inputs.project_id", workflow)
+        self.assertIn("inputs.project_id", workflow)
         self.assertIn("confirm_tts_generation:", workflow)
         self.assertIn("confirm_full_render:", workflow)
         self.assertEqual(workflow.count("default: false"), 2)
         self.assertIn("needs: safety-gate", workflow)
-        self.assertIn("github.event.inputs.confirm_tts_generation == 'true'", workflow)
-        self.assertIn("github.event.inputs.confirm_full_render == 'true'", workflow)
+        self.assertIn("inputs.confirm_tts_generation == true", workflow)
+        self.assertIn("inputs.confirm_full_render == true", workflow)
+
+    def test_workflow_uses_one_project_specific_output_for_render_validation_and_upload(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn('OUTPUT="out/$PROJECT_ID-full-narrated.mp4"', workflow)
+        self.assertIn('ffprobe -v error', workflow)
+        self.assertIn('ffmpeg -v error -i "$OUTPUT"', workflow)
+        self.assertIn('openmontage/out/${{ inputs.project_id }}-full-narrated.mp4', workflow)
+        self.assertIn('openmontage/out/${{ inputs.project_id }}-full-narrated.report.json', workflow)
+        self.assertNotIn("alien-draft-seal-full-narrated.mp4", workflow)
+
+    def test_project_id_is_passed_via_environment_not_interpolated_into_shell(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("PROJECT_ID: ${{ inputs.project_id }}", workflow)
+        self.assertIn('[[ ! "$PROJECT_ID" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{2,59}$ ]]', workflow)
+        self.assertNotIn('${{ github.event.inputs.project_id }}', workflow)
+        self.assertIn('"../amazon-video-agent/projects/$PROJECT_ID"', workflow)
 
 
 if __name__ == "__main__":

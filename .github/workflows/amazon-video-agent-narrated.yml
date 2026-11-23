@@ -1,14 +1,20 @@
-name: Amazon Video Agent — approved Piper narration
+name: Amazon Video Agent — approved narrated video
 on:
   workflow_dispatch:
     inputs:
       project_id:
-        description: "Folder name under amazon-video-agent/projects (usually the ASIN)"
+        description: "Project folder under amazon-video-agent/projects (ASIN for Single; folder name for Compare/List)"
         required: true
         type: string
         default: "B08S3M2HKL"
+      voice:
+        description: "Narration voice: Piper female or one of the four Ad Agent Microsoft Edge voices"
+        required: true
+        type: choice
+        default: edge_female
+        options: [piper_female, edge_female, edge_female_2, edge_male, edge_male_2]
       confirm_tts_generation:
-        description: "Approve free full female Piper narration generation"
+        description: "Approve narration generation with the selected voice"
         required: true
         type: boolean
         default: false
@@ -41,6 +47,7 @@ jobs:
     timeout-minutes: 90
     env:
       PROJECT_ID: ${{ inputs.project_id }}
+      VOICE: ${{ inputs.voice }}
     steps:
       - uses: actions/checkout@v4
         with: {path: openmontage}
@@ -60,10 +67,11 @@ jobs:
         working-directory: openmontage
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt piper-tts
+          pip install -r requirements.txt piper-tts edge-tts
           npm --prefix remotion-composer ci
           sudo apt-get update && sudo apt-get install -y ffmpeg
-      - name: Download pinned female voice and verify
+      - name: Download pinned Piper voice only when selected
+        if: inputs.voice == 'piper_female'
         run: |
           set -euo pipefail
           mkdir -p openmontage/.tmp/piper
@@ -85,20 +93,33 @@ jobs:
           fi
           SOURCE="amazon-video-agent/projects/$PROJECT_ID"
           test -d "$SOURCE"
-          for required in facts.yaml script.md scenes.md assets; do
-            test -e "$SOURCE/$required" || { echo "Missing $required in $SOURCE"; exit 2; }
-          done
+          if [ -f "$SOURCE/list.yaml" ] && [ -f "$SOURCE/compare.yaml" ]; then
+            echo "::error::A project cannot contain both list.yaml and compare.yaml."
+            exit 2
+          elif [ -f "$SOURCE/list.yaml" ] || [ -f "$SOURCE/compare.yaml" ]; then
+            test -s "$SOURCE/script.md" || { echo "Multi-product project is missing script.md"; exit 2; }
+            echo "Detected Ad Agent Compare/List project; referenced product folders and media will be validated by the importer."
+          else
+            for required in facts.yaml script.md scenes.md assets; do
+              test -e "$SOURCE/$required" || { echo "Missing $required in $SOURCE"; exit 2; }
+            done
+          fi
       - name: Generate and render
         working-directory: openmontage
         run: |
           set -euo pipefail
           OUTPUT="out/$PROJECT_ID-full-narrated.mp4"
-          python scripts/render_piper_narrated_project.py \
-            --source-project "../amazon-video-agent/projects/$PROJECT_ID" \
-            --model .tmp/piper/en_US-ljspeech-medium.onnx \
-            --work-dir .tmp/projects \
-            --output "$OUTPUT" \
+          args=(
+            --source-project "../amazon-video-agent/projects/$PROJECT_ID"
+            --work-dir .tmp/projects
+            --output "$OUTPUT"
+            --voice "$VOICE"
             --approve-tts --approve-render
+          )
+          if [ "$VOICE" = "piper_female" ]; then
+            args+=(--model .tmp/piper/en_US-ljspeech-medium.onnx)
+          fi
+          python scripts/render_piper_narrated_project.py "${args[@]}"
       - name: Validate audio/video and decode
         working-directory: openmontage
         run: |
@@ -115,6 +136,5 @@ jobs:
           path: |
             openmontage/out/${{ inputs.project_id }}-full-narrated.mp4
             openmontage/out/${{ inputs.project_id }}-full-narrated.report.json
-            openmontage/.tmp/piper/MODEL_CARD
           if-no-files-found: error
           retention-days: 14

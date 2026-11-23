@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Approval-gated Piper female narration and full-length Remotion render."""
-import argparse,json,shutil,subprocess,sys,wave
+"""Approval-gated Ad Agent voice narration and full-length Remotion render."""
+import argparse,json,re,shutil,subprocess,sys,wave
 from pathlib import Path
 
 # When executed as `python scripts/...py`, Python places scripts/ rather than
@@ -9,7 +9,8 @@ REPO_ROOT=Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0,str(REPO_ROOT))
 
-from integrations.amazon_video_agent.importer import import_project,_parse_script
+from integrations.amazon_video_agent.importer import _parse_script
+from integrations.amazon_video_agent.list_adapter import import_selected_project
 from tools.video.video_compose import VideoCompose
 from schemas.artifacts import validate_artifact
 MODEL="en_US-ljspeech-medium"
@@ -114,24 +115,36 @@ def text_from(path):
     text=" ".join(s["text"] for s in sections)
     if not text.strip(): raise ValueError("No narration in script")
     return text
-def build_edit_decisions(script,manifest,plan,stills,project_id):
+def build_edit_decisions(script,manifest,plan,stills,project_id,voice_provider="piper",voice_model=MODEL):
     scenes={x["script_section_id"]:x for x in plan["scenes"]}
     cuts=[]; overlays=[]
     for i,s in enumerate(script["sections"]):
         start,end=float(s["start_seconds"]),float(s["end_seconds"])
         if end<=start: continue
+        scene=scenes.get(s["id"],{})
+        refs=scene.get("required_assets",[])
         clip=None
-        for ref in scenes.get(s["id"],{}).get("required_assets",[]):
+        for ref in refs:
             if ref.get("type")=="video":
-                clip=next((x for x in manifest["assets"] if x["type"]=="video" and Path(x["path"]).name==ref["description"]),None)
+                clip=next((x for x in manifest["assets"] if x["type"]=="video" and Path(x["path"]).name==Path(ref["description"]).name),None)
                 if clip: break
         span=end-start; clip_span=min(4,span*.42) if clip else 0
         if clip_span>=1:
             cuts.append({"id":s["id"]+"-video","source":clip["id"],"in_seconds":round(start,3),"out_seconds":round(start+clip_span,3),"layer":"primary","transition_in":"cut","transition_out":"cut"})
-        still=stills[i%len(stills)]
+        still=None
+        for ref in refs:
+            if ref.get("type")=="image":
+                still=next((x for x in manifest["assets"] if x["type"]=="image" and Path(x["path"]).name==Path(ref["description"]).name),None)
+                if still: break
+        if still is None:
+            still=stills[i%len(stills)]
         cuts.append({"id":s["id"]+"-still","source":still["id"],"in_seconds":round(start+clip_span,3),"out_seconds":round(end,3),"layer":"primary","transition_in":"cut","transition_out":"cut","transform":{"animation":"static"},"image_fit":"contain","image_vignette":False,"backgroundColor":"#FFFFFF"})
-        overlays.append({"type":"section_title","in_seconds":round(start,3),"out_seconds":round(min(end,start+2.4),3),"text":s["label"].replace("-"," ").title(),"position":"top-center"})
-    return {"version":"1.0","tailPaddingSeconds":0,"cuts":cuts,"overlays":overlays,"renderer_family":"product-reveal","render_runtime":"remotion","composition_mode":"templated","metadata":{"project_id":"amazon-"+project_id,"deliverable":"full_narrated_video","duration_seconds":script["total_duration_seconds"],"aspect_ratio":"16:9","fps":30,"audio":"narration","audio_expected":True,"voice_provider":"piper","voice_model":MODEL,"voice_fallback":False,"music_enabled":False,"external_assets_allowed":False,"generated_assets_allowed":False,"source_policy":"existing_supplied_media_only","notes":["Separate full-length edit; preview edit_decisions.json is not read or changed.","Only supplied project images and video are used.", "Source video is normalized to 1080p without product-specific cropping or overlay removal."]}}
+        label=s["label"].replace("-"," ").replace("_"," ").title()
+        rank_match=re.fullmatch(r"item_(\d+)",s["label"],re.I)
+        if rank_match:
+            label=f"Rank #{rank_match.group(1)}"
+        overlays.append({"type":"section_title","in_seconds":round(start,3),"out_seconds":round(min(end,start+2.4),3),"text":label,"position":"top-center"})
+    return {"version":"1.0","tailPaddingSeconds":0,"cuts":cuts,"overlays":overlays,"renderer_family":"product-reveal","render_runtime":"remotion","composition_mode":"templated","metadata":{"project_id":"amazon-"+project_id,"deliverable":"full_narrated_video","duration_seconds":script["total_duration_seconds"],"aspect_ratio":"16:9","fps":30,"audio":"narration","audio_expected":True,"voice_provider":voice_provider,"voice_model":voice_model,"voice_fallback":False,"music_enabled":False,"external_assets_allowed":False,"generated_assets_allowed":False,"source_policy":"existing_supplied_media_only","notes":["Separate full-length edit; preview edit_decisions.json is not read or changed.","Only supplied project images and video are used.","Source video is normalized to 1080p without product-specific cropping or overlay removal."]}}
 
 
 def manifest_with_absolute_paths(project_root, manifest):
@@ -157,30 +170,105 @@ def manifest_with_absolute_paths(project_root, manifest):
     return resolved
 
 
+EDGE_VOICES = {
+    "edge_female": ("en-US-AvaMultilingualNeural", "female"),
+    "edge_female_2": ("en-US-EmmaMultilingualNeural", "female"),
+    "edge_male": ("en-US-AndrewMultilingualNeural", "male"),
+    "edge_male_2": ("en-US-BrianMultilingualNeural", "male"),
+}
+
+
+def synthesize_edge_narration(text, voice_name, output_wav):
+    """Use one selected Microsoft Edge neural voice for the entire narration; never switch voices."""
+    import asyncio
+    import edge_tts
+
+    output_wav=Path(output_wav)
+    output_wav.parent.mkdir(parents=True,exist_ok=True)
+    mp3=output_wav.with_suffix(".edge.mp3")
+
+    async def _save():
+        communicator=edge_tts.Communicate(text=text,voice=voice_name,rate="-4%",volume="+0%")
+        await communicator.save(str(mp3))
+
+    try:
+        asyncio.run(_save())
+        subprocess.run([
+            "ffmpeg","-hide_banner","-loglevel","error","-y","-i",str(mp3),
+            "-ar","22050","-ac","1","-c:a","pcm_s16le",str(output_wav)
+        ],check=True,capture_output=True,timeout=180)
+    finally:
+        mp3.unlink(missing_ok=True)
+    if not output_wav.is_file() or output_wav.stat().st_size<1000:
+        raise RuntimeError(f"Edge TTS did not produce valid narration for {voice_name}")
+    return output_wav
+
+
 def main():
     p=argparse.ArgumentParser()
-    for key in ("source-project","model","work-dir","output"): p.add_argument("--"+key,type=Path,required=True)
-    p.add_argument("--approve-tts",action="store_true"); p.add_argument("--approve-render",action="store_true")
+    p.add_argument("--source-project",type=Path,required=True)
+    p.add_argument("--model",type=Path,default=None)
+    p.add_argument("--work-dir",type=Path,required=True)
+    p.add_argument("--output",type=Path,required=True)
+    p.add_argument("--voice",choices=["piper_female",*EDGE_VOICES],default="piper_female")
+    p.add_argument("--approve-tts",action="store_true")
+    p.add_argument("--approve-render",action="store_true")
     a=p.parse_args()
-    if not(a.approve_tts and a.approve_render): raise SystemExit("Blocked: both explicit approvals are required")
-    project_id=a.source_project.name
+    if not(a.approve_tts and a.approve_render):
+        raise SystemExit("Blocked: both explicit approvals are required")
+    source=a.source_project.expanduser().resolve()
+    project_id=source.name
     if not project_id or not all(c.isalnum() or c in "-_" for c in project_id):
         raise SystemExit("Project directory name must contain only letters, digits, hyphens, or underscores")
-    if not a.source_project.is_dir(): raise FileNotFoundError(f"Project directory not found: {a.source_project}")
-    for required in ("facts.yaml", "script.md", "scenes.md", "assets"):
-        if not (a.source_project / required).exists():
-            raise FileNotFoundError(f"Selected project is missing required input: {required}")
-    if not a.model.is_file() or not Path(str(a.model)+".json").is_file() or not shutil.which("piper"): raise RuntimeError("Pinned Piper runtime/model unavailable; no fallback")
-    audio=a.source_project/"out"/"voice.wav"; audio.parent.mkdir(parents=True,exist_ok=True)
-    proc=subprocess.run(["piper","--model",str(a.model),"--output_file",str(audio),"--length-scale","1.0","--sentence-silence","0.25"],input=text_from(a.source_project/"script.md"),text=True,encoding="utf-8",capture_output=True,timeout=900)
-    if proc.returncode: raise RuntimeError("Piper failed: "+proc.stderr[-2000:])
+    if not source.is_dir():
+        raise FileNotFoundError(f"Project directory not found: {source}")
+    is_list=(source/"list.yaml").is_file()
+    required=("list.yaml","script.md") if is_list else ("facts.yaml","script.md","scenes.md","assets")
+    for name in required:
+        if not (source/name).exists():
+            raise FileNotFoundError(f"Selected project is missing required input: {name}")
+    narration=text_from(source/"script.md")
+    audio_dir=a.work_dir/"narration"
+    audio_dir.mkdir(parents=True,exist_ok=True)
+    audio=audio_dir/f"{project_id}.wav"
+
+    if a.voice=="piper_female":
+        if a.model is None or not a.model.is_file() or not Path(str(a.model)+".json").is_file() or not shutil.which("piper"):
+            raise RuntimeError("Pinned Piper runtime/model unavailable; no fallback")
+        proc=subprocess.run(
+            ["piper","--model",str(a.model),"--output_file",str(audio),"--length-scale","1.0","--sentence-silence","0.25"],
+            input=narration,text=True,encoding="utf-8",capture_output=True,timeout=900
+        )
+        if proc.returncode:
+            raise RuntimeError("Piper failed: "+proc.stderr[-2000:])
+        voice_provider="piper"
+        voice_model=MODEL
+        voice_gender="female"
+        voice_warning=None
+    else:
+        voice_name,voice_gender=EDGE_VOICES[a.voice]
+        synthesize_edge_narration(narration,voice_name,audio)
+        voice_provider="microsoft_edge_tts"
+        voice_model=voice_name
+        voice_warning="Uses Microsoft's unofficial Edge TTS endpoint; Ad Agent notes there is no commercial licence statement."
     with wave.open(str(audio),"rb") as w:
         duration=w.getnframes()/w.getframerate()
-        if duration<30: raise RuntimeError("Narration duration invalid")
-    project=import_project(a.source_project,"amazon-"+project_id+"-narrated",projects_dir=a.work_dir,media_mode="copy")
-    root=project/"artifacts"; script=json.loads((root/"script.json").read_text()); manifest=json.loads((root/"asset_manifest.json").read_text()); plan=json.loads((root/"scene_plan.json").read_text())
+        if duration<30:
+            raise RuntimeError("Narration duration invalid")
+
+    project=import_selected_project(
+        source,"amazon-"+project_id+"-narrated",projects_dir=a.work_dir,media_mode="copy",
+        narration_audio=audio
+    )
+    root=project/"artifacts"
+    script=json.loads((root/"script.json").read_text())
+    manifest=json.loads((root/"asset_manifest.json").read_text())
+    plan=json.loads((root/"scene_plan.json").read_text())
     stills=approved_product_stills(manifest,plan)
-    decisions=build_edit_decisions(script,manifest,plan,stills,project_id)
+    decisions=build_edit_decisions(
+        script,manifest,plan,stills,project_id,
+        voice_provider=voice_provider,voice_model=voice_model
+    )
     validate_artifact("edit_decisions",decisions)
     render_manifest=manifest_with_absolute_paths(project,manifest)
     render_manifest,cleaned_video_assets=prepare_clean_video_assets(project,render_manifest)
@@ -192,12 +280,37 @@ def main():
     )
     (root/"narrated_edit_decisions.json").write_text(json.dumps(decisions,indent=2)+"\n")
     a.output.parent.mkdir(parents=True,exist_ok=True)
-    result=VideoCompose().execute({"operation":"render","edit_decisions":decisions,"asset_manifest":render_manifest,"audio_path":str(audio_for_render.resolve()),"output_path":str(a.output.resolve()),"profile":"youtube_landscape","script_text":text_from(a.source_project/"script.md"),**remotion_render_options()})
-    if not result.success: raise RuntimeError("Remotion render failed: "+str(result.error))
-    if not a.output.is_file() or a.output.stat().st_size<100000: raise RuntimeError("MP4 missing/invalid")
+    result=VideoCompose().execute({
+        "operation":"render","edit_decisions":decisions,"asset_manifest":render_manifest,
+        "audio_path":str(audio_for_render.resolve()),"output_path":str(a.output.resolve()),
+        "profile":"youtube_landscape","script_text":narration,**remotion_render_options()
+    })
+    if not result.success:
+        raise RuntimeError("Remotion render failed: "+str(result.error))
+    if not a.output.is_file() or a.output.stat().st_size<100000:
+        raise RuntimeError("MP4 missing/invalid")
     final_review=(result.data or {}).get("final_review")
     if not isinstance(final_review,dict) or final_review.get("status")!="pass":
         raise RuntimeError("Final review did not pass: "+str(final_review))
-    report={"provider":"Piper","model":MODEL,"female_voice":True,"fallback":False,"audio_duration_seconds":round(duration,2),"visual_cuts":len(decisions["cuts"]),"staged_assets":len(render_manifest["assets"]),"remotion_process_timeout_seconds":REMOTION_PROCESS_TIMEOUT_SECONDS,"remotion_concurrency":REMOTION_CONCURRENCY,"audio_peak_limit_dbfs":-2.0,"audio_source":"Piper narration only; source-video audio is not muxed","visual_asset_cleanup":{"processed_video_assets":len(cleaned_video_assets),"product_specific_overlays_removed":False,"normalization":"fit-within-1920x1080; preserve full source frame","selected_still_images":[Path(x["path"]).name for x in stills],"still_image_fit":"contain"},"final_review":final_review}
+    report={
+        "provider":voice_provider,"voice":voice_model,"gender":voice_gender,
+        "fallback":False,"warning":voice_warning,
+        "audio_duration_seconds":round(duration,2),"visual_cuts":len(decisions["cuts"]),
+        "staged_assets":len(render_manifest["assets"]),
+        "remotion_process_timeout_seconds":REMOTION_PROCESS_TIMEOUT_SECONDS,
+        "remotion_concurrency":REMOTION_CONCURRENCY,"audio_peak_limit_dbfs":-2.0,
+        "audio_source":f"{voice_provider} narration only; source-video audio is not muxed",
+        "visual_asset_cleanup":{
+            "processed_video_assets":len(cleaned_video_assets),
+            "product_specific_overlays_removed":False,
+            "normalization":"fit-within-1920x1080; preserve full source frame",
+            "selected_still_images":[Path(x["path"]).name for x in stills],
+            "still_image_fit":"contain"
+        },
+        "final_review":final_review
+    }
     a.output.with_suffix(".report.json").write_text(json.dumps(report,indent=2,default=str)+"\n")
-if __name__=="__main__": main()
+
+
+if __name__=="__main__":
+    main()

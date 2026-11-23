@@ -78,3 +78,35 @@ Leave `render_native_preview` false for new projects until their own
 downstream approvals and edit decisions are complete. Pull-request validation
 runs import and smoke tests only; it no longer tries to render the original
 sample as a side effect.
+
+## Ad Agent project types and narration voices
+
+The approved narrated workflow accepts all three Ad Agent project types:
+
+| Ad Agent mode | Project folder input | Product folders |
+|---|---|---|
+| Single-product review | ASIN folder containing `facts.yaml`, `script.md`, `scenes.md`, and `assets/` | The selected folder |
+| Comparison | Folder containing `compare.yaml` and `script.md` | 2-3 existing product folders referenced in `compare.yaml` |
+| Top-N list | Folder containing `list.yaml` and `script.md` | 3-9 existing product folders referenced in `list.yaml` |
+
+For Compare and List, each product's existing `facts.yaml` and `assets/` are read from its sibling product folder. Inline script metadata such as `product: 1`, `product: 2`, or `product: all` maps narration sections to the corresponding product media. Shared media in the comparison/list folder's optional `assets/` directory is also eligible for general sections.
+
+The integration stages media and narration in an isolated OpenMontage workspace. It does not write generated audio, staging files, or rendered output into the Ad Agent checkout. The original Ad Agent folders remain unchanged.
+
+Run **Actions -> Amazon Video Agent — approved narrated video** and enter:
+- the ASIN for a Single project;
+- the comparison folder name for Compare;
+- the list folder name for List.
+
+### Voice choices
+
+The workflow offers the same four Microsoft Edge neural voice IDs configured in Ad Agent:
+
+- `edge_female`: Ava (`en-US-AvaMultilingualNeural`)
+- `edge_female_2`: Emma (`en-US-EmmaMultilingualNeural`)
+- `edge_male`: Andrew (`en-US-AndrewMultilingualNeural`)
+- `edge_male_2`: Brian (`en-US-BrianMultilingualNeural`)
+
+One selected voice is used for the entire narration. The default is Ava; Piper female remains an optional offline alternative. OpenMontage generates a fresh narration from the selected project's script using the chosen voice; it does not reuse or overwrite Ad Agent's existing `out/voice.wav`.
+
+The Edge choices use the unofficial Microsoft Edge TTS endpoint, as Ad Agent does. Ad Agent's configuration notes that this endpoint has no commercial licence statement. This is a technical integration of the same voice IDs, not a claim that Microsoft grants commercial-use rights. Both independent, default-false approvals for TTS generation and full rendering remain required.

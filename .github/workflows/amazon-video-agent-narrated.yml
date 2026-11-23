@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       project_id:
-        description: "Project folder under amazon-video-agent/projects (ASIN for Single, folder name for List)"
+        description: "Project folder under amazon-video-agent/projects (ASIN for Single; folder name for Compare/List)"
         required: true
         type: string
         default: "B08S3M2HKL"
@@ -11,7 +11,7 @@ on:
         description: "Narration voice: Piper female or one of the four Ad Agent Microsoft Edge voices"
         required: true
         type: choice
-        default: piper_female
+        default: edge_female
         options: [piper_female, edge_female, edge_female_2, edge_male, edge_male_2]
       confirm_tts_generation:
         description: "Approve narration generation with the selected voice"
@@ -93,9 +93,12 @@ jobs:
           fi
           SOURCE="amazon-video-agent/projects/$PROJECT_ID"
           test -d "$SOURCE"
-          if [ -f "$SOURCE/list.yaml" ]; then
-            test -s "$SOURCE/script.md" || { echo "List project is missing script.md"; exit 2; }
-            echo "Detected Ad Agent Top-N list project; product folders and media will be validated by the importer."
+          if [ -f "$SOURCE/list.yaml" ] && [ -f "$SOURCE/compare.yaml" ]; then
+            echo "::error::A project cannot contain both list.yaml and compare.yaml."
+            exit 2
+          elif [ -f "$SOURCE/list.yaml" ] || [ -f "$SOURCE/compare.yaml" ]; then
+            test -s "$SOURCE/script.md" || { echo "Multi-product project is missing script.md"; exit 2; }
+            echo "Detected Ad Agent Compare/List project; referenced product folders and media will be validated by the importer."
           else
             for required in facts.yaml script.md scenes.md assets; do
               test -e "$SOURCE/$required" || { echo "Missing $required in $SOURCE"; exit 2; }

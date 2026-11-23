@@ -11,6 +11,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from integrations.amazon_video_agent.importer import import_project,_parse_script
 from tools.video.video_compose import VideoCompose
+from schemas.artifacts import validate_artifact
 ASIN="B08S3M2HKL"; MODEL="en_US-ljspeech-medium"
 def text_from(path):
     _,sections=_parse_script(path)
@@ -56,6 +57,7 @@ def main():
     stills=[x for x in manifest["assets"] if x["type"]=="image" and "product_image_61" not in x["path"].lower()]
     if not stills: raise RuntimeError("No approved product stills")
     decisions=build_edit_decisions(script,manifest,plan,stills)
+    validate_artifact("edit_decisions",decisions)
     audio_for_render=project/"assets"/"audio"/"voice.wav"
     if not audio_for_render.is_file():
         raise RuntimeError("Imported narration WAV missing from isolated project workspace")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -11,6 +12,7 @@ from scripts.render_piper_narrated_project import (
     REMOTION_PROCESS_TIMEOUT_SECONDS,
     build_edit_decisions,
     manifest_with_absolute_paths,
+    limit_narration_peaks,
     remotion_render_options,
     text_from,
 )
@@ -40,6 +42,36 @@ class PiperNarratedProjectTests(unittest.TestCase):
         self.assertEqual(VideoCompose._resolve_remotion_process_timeout(50), 750)
         with self.assertRaisesRegex(ValueError, "must be at least 1"):
             VideoCompose._resolve_remotion_process_timeout(10, 0)
+
+    def test_limiter_creates_headroom_for_piper_audio(self):
+        if shutil.which("ffmpeg") is None:
+            self.skipTest("ffmpeg is required")
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "voice.wav"
+            limited = Path(tmp) / "voice-limited.wav"
+            subprocess.run(
+                [
+                    "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                    "-f", "lavfi", "-i", "sine=frequency=440:duration=1",
+                    "-af", "volume=8", "-c:a", "pcm_s16le", str(source),
+                ],
+                check=True,
+                capture_output=True,
+                timeout=30,
+            )
+            self.assertEqual(limit_narration_peaks(source, limited), limited)
+            probe = subprocess.run(
+                ["ffmpeg", "-i", str(limited), "-af", "volumedetect", "-f", "null", "-"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            max_line = next(
+                line for line in probe.stderr.splitlines() if "max_volume:" in line
+            )
+            peak = float(max_line.split("max_volume:")[1].strip().split()[0])
+            self.assertLessEqual(peak, -1.5)
 
     def test_extracts_narration_without_inline_product_metadata(self):
         with tempfile.TemporaryDirectory() as tmp:

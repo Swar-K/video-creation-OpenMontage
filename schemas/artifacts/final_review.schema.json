@@ -71,7 +71,8 @@
               "description": "Whether the approved deliverable requires an audio stream. False for intentionally silent previews."
             },
             "narration_present": { "type": "boolean" },
-            "music_present": { "type": "boolean" },
+            "music_present": { "type": "boolean", "description": "True only when independently established; volume level alone is insufficient." },
+            "music_detection_status": { "type": "string", "description": "Explains whether music was actually classified or not assessed." },
             "unexpected_silence": { "type": "boolean" },
             "clipping_detected": { "type": "boolean" },
             "mix_intelligible": { "type": "boolean" },

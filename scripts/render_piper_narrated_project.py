@@ -23,6 +23,25 @@ def remotion_render_options():
         "remotion_concurrency": REMOTION_CONCURRENCY,
     }
 
+def limit_narration_peaks(source, destination):
+    """Create a peak-limited narration WAV before it is muxed into the video.
+
+    A -2 dBFS ceiling leaves headroom for AAC encoding and avoids relying on
+    the final-review checker to discover clipped source peaks after rendering.
+    """
+    destination=Path(destination)
+    destination.parent.mkdir(parents=True,exist_ok=True)
+    subprocess.run([
+        "ffmpeg","-hide_banner","-loglevel","error","-y",
+        "-i",str(source),
+        "-af","alimiter=limit=0.794:level=disabled",
+        "-c:a","pcm_s16le",str(destination),
+    ],check=True,capture_output=True,timeout=180)
+    if not destination.is_file() or destination.stat().st_size<1000:
+        raise RuntimeError("Peak-limited narration WAV was not created")
+    return destination
+
+
 def text_from(path):
     _,sections=_parse_script(path)
     text=" ".join(s["text"] for s in sections)
@@ -92,9 +111,12 @@ def main():
     decisions=build_edit_decisions(script,manifest,plan,stills)
     validate_artifact("edit_decisions",decisions)
     render_manifest=manifest_with_absolute_paths(project,manifest)
-    audio_for_render=project/"assets"/"audio"/"voice.wav"
-    if not audio_for_render.is_file():
+    source_audio=project/"assets"/"audio"/"voice.wav"
+    if not source_audio.is_file():
         raise RuntimeError("Imported narration WAV missing from isolated project workspace")
+    audio_for_render=limit_narration_peaks(
+        source_audio,project/"assets"/"audio"/"voice-limited.wav"
+    )
     (root/"narrated_edit_decisions.json").write_text(json.dumps(decisions,indent=2)+"\n")
     a.output.parent.mkdir(parents=True,exist_ok=True)
     result=VideoCompose().execute({"operation":"render","edit_decisions":decisions,"asset_manifest":render_manifest,"audio_path":str(audio_for_render.resolve()),"output_path":str(a.output.resolve()),"profile":"youtube_landscape","script_text":text_from(a.source_project/"script.md"),**remotion_render_options()})
@@ -103,6 +125,6 @@ def main():
     final_review=(result.data or {}).get("final_review")
     if not isinstance(final_review,dict) or final_review.get("status")!="pass":
         raise RuntimeError("Final review did not pass: "+str(final_review))
-    report={"provider":"Piper","model":MODEL,"female_voice":True,"fallback":False,"audio_duration_seconds":round(duration,2),"visual_cuts":len(decisions["cuts"]),"staged_assets":len(render_manifest["assets"]),"remotion_process_timeout_seconds":REMOTION_PROCESS_TIMEOUT_SECONDS,"remotion_concurrency":REMOTION_CONCURRENCY,"final_review":final_review}
+    report={"provider":"Piper","model":MODEL,"female_voice":True,"fallback":False,"audio_duration_seconds":round(duration,2),"visual_cuts":len(decisions["cuts"]),"staged_assets":len(render_manifest["assets"]),"remotion_process_timeout_seconds":REMOTION_PROCESS_TIMEOUT_SECONDS,"remotion_concurrency":REMOTION_CONCURRENCY,"audio_peak_limit_dbfs":-2.0,"audio_source":"Piper narration only; source-video audio is not muxed","final_review":final_review}
     a.output.with_suffix(".report.json").write_text(json.dumps(report,indent=2,default=str)+"\n")
 if __name__=="__main__": main()

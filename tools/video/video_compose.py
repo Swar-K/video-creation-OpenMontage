@@ -264,6 +264,7 @@ class VideoCompose(BaseTool):
         "quality", "fps", "workspace_path", "public_dir", "strict",
         "strict_check", "skip_contrast", "snapshots",
         "remotion_browser_executable", "remotion_concurrency",
+        "remotion_process_timeout_seconds",
     ]
     side_effects = ["writes video file to output_path"]
     user_visible_verification = [
@@ -2213,7 +2214,7 @@ class VideoCompose(BaseTool):
             return ToolResult(
                 success=False,
                 error=(
-                    f"Remotion render exceeded its subprocess wall-clock limit of {e.timeout}s. "
+                    f"Remotion render timed out after exceeding its subprocess wall-clock limit of {e.timeout}s. "
                     "Raise remotion_process_timeout_seconds after reviewing the expected render "
                     "duration. remotion_timeout_ms separately controls browser setup and delayRender."
                 ),

@@ -79,6 +79,20 @@ class AmazonListAdapterTests(unittest.TestCase):
             "edge_male_2": ("en-US-BrianMultilingualNeural", "male"),
         })
 
+
+    def test_manual_workflow_exposes_list_and_four_edge_voice_options(self):
+        workflow = (
+            Path(__file__).resolve().parents[2]
+            / ".github" / "workflows" / "amazon-video-agent-narrated.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("edge_female", workflow)
+        self.assertIn("edge_female_2", workflow)
+        self.assertIn("edge_male", workflow)
+        self.assertIn("edge_male_2", workflow)
+        self.assertIn('if [ -f "$SOURCE/list.yaml" ]', workflow)
+        self.assertIn('VOICE: ${{ inputs.voice }}', workflow)
+        self.assertEqual(workflow.count("default: false"), 2)
+
     def test_list_edit_uses_scene_product_image_not_round_robin_image(self):
         script = {
             "total_duration_seconds": 20.0,

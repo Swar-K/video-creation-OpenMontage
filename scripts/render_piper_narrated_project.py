@@ -16,6 +16,18 @@ ASIN="B08S3M2HKL"; MODEL="en_US-ljspeech-medium"
 REMOTION_PROCESS_TIMEOUT_SECONDS=1800
 REMOTION_CONCURRENCY=2
 
+# The supplied 1280x720 screen-recorded clips include a Windows playback bar.
+# Four door-installation clips also contain the Windows activation watermark
+# and a stationary mouse pointer in the lower-right / center-left areas.
+WINDOWS_WATERMARK_ASSETS = {
+    "2026-10-23 17-27-34 - Trim7.mp4",
+    "2026-10-23 17-27-34 - Trim10.mp4",
+    "2026-10-23 17-27-34 - Trim9.mp4",
+    "2026-10-23 17-27-34 - Trim8.mp4",
+}
+CURSOR_ASSETS = set(WINDOWS_WATERMARK_ASSETS)
+APPROVED_STILL_FILENAMES = {"product_image_51.jpg", "product_image_81.jpg"}
+
 def remotion_render_options():
     """Keep full-length renders on native Remotion with an explicit process limit."""
     return {
@@ -42,6 +54,70 @@ def limit_narration_peaks(source, destination):
     return destination
 
 
+def clean_source_video_filter(filename):
+    """Return the cleanup filter for the supplied screen-recorded source clip."""
+    filters = []
+    if filename in WINDOWS_WATERMARK_ASSETS:
+        # The watermark is baked into the lower-right floor area.
+        filters.append("delogo=x=1010:y=620:w=250:h=55:show=0")
+    if filename in CURSOR_ASSETS:
+        # Remove the fixed mouse pointer from the blank door/wall area.
+        filters.append("delogo=x=345:y=375:w=30:h=35:show=0")
+    # The playback control strip occupies the final 28 source pixels. Crop it,
+    # then preserve the full remaining image with a 16:9 canvas and narrow
+    # black mattes rather than stretching or cutting off the product/hand.
+    filters.extend([
+        "crop=iw:ih-28:0:0",
+        "scale=1920:-2:flags=lanczos",
+        "pad=1920:1080:0:(oh-ih)/2:color=black",
+        "setsar=1",
+    ])
+    return ",".join(filters)
+
+
+def prepare_clean_video_assets(project_root, manifest):
+    """Create clean, silent 1080p derivatives without changing source assets."""
+    root = Path(project_root).resolve()
+    cleaned = json.loads(json.dumps(manifest))
+    processed = []
+    for asset in cleaned.get("assets", []):
+        if asset.get("type") != "video":
+            continue
+        source = Path(asset["path"]).resolve()
+        try:
+            source.relative_to(root)
+        except ValueError as exc:
+            raise ValueError(
+                f"Video asset path escapes isolated project workspace: {source}"
+            ) from exc
+        if not source.is_file():
+            raise FileNotFoundError(f"Video source missing before cleanup: {source}")
+        target_dir = root / "assets" / "video_clean"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target = target_dir / f"{source.stem}.clean.mp4"
+        subprocess.run(
+            [
+                "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                "-i", str(source),
+                "-vf", clean_source_video_filter(source.name),
+                "-an",
+                "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
+                "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+                str(target),
+            ],
+            check=True,
+            capture_output=True,
+            timeout=900,
+        )
+        if not target.is_file() or target.stat().st_size < 10000:
+            raise RuntimeError(f"Cleaned video asset was not created: {target}")
+        asset["path"] = str(target.resolve())
+        processed.append(source.name)
+    if not processed:
+        raise RuntimeError("No source video assets were available for visual cleanup")
+    return cleaned, processed
+
+
 def text_from(path):
     _,sections=_parse_script(path)
     text=" ".join(s["text"] for s in sections)
@@ -62,9 +138,9 @@ def build_edit_decisions(script,manifest,plan,stills):
         if clip_span>=1:
             cuts.append({"id":s["id"]+"-video","source":clip["id"],"in_seconds":round(start,3),"out_seconds":round(start+clip_span,3),"layer":"primary","transition_in":"cut","transition_out":"cut"})
         still=stills[i%len(stills)]
-        cuts.append({"id":s["id"]+"-still","source":still["id"],"in_seconds":round(start+clip_span,3),"out_seconds":round(end,3),"layer":"primary","transition_in":"cut","transition_out":"cut","transform":{"animation":"subtle-zoom-in"}})
+        cuts.append({"id":s["id"]+"-still","source":still["id"],"in_seconds":round(start+clip_span,3),"out_seconds":round(end,3),"layer":"primary","transition_in":"cut","transition_out":"cut","transform":{"animation":"subtle-zoom-in"},"image_fit":"contain","image_vignette":False,"backgroundColor":"#FFFFFF"})
         overlays.append({"type":"section_title","in_seconds":round(start,3),"out_seconds":round(min(end,start+2.4),3),"text":s["label"].replace("-"," ").title(),"position":"top-center"})
-    return {"version":"1.0","tailPaddingSeconds":0,"cuts":cuts,"overlays":overlays,"renderer_family":"product-reveal","render_runtime":"remotion","composition_mode":"templated","metadata":{"project_id":"amazon-"+ASIN,"deliverable":"full_narrated_video","duration_seconds":script["total_duration_seconds"],"aspect_ratio":"16:9","fps":30,"audio":"narration","audio_expected":True,"voice_provider":"piper","voice_model":MODEL,"voice_fallback":False,"music_enabled":False,"external_assets_allowed":False,"generated_assets_allowed":False,"source_policy":"existing_supplied_media_only","notes":["Separate full-length edit; preview edit_decisions.json is not read or changed.","Existing product clips and stills only; product_image_61 excluded due conflicting 48-foot graphic."]}}
+    return {"version":"1.0","tailPaddingSeconds":0,"cuts":cuts,"overlays":overlays,"renderer_family":"product-reveal","render_runtime":"remotion","composition_mode":"templated","metadata":{"project_id":"amazon-"+ASIN,"deliverable":"full_narrated_video","duration_seconds":script["total_duration_seconds"],"aspect_ratio":"16:9","fps":30,"audio":"narration","audio_expected":True,"voice_provider":"piper","voice_model":MODEL,"voice_fallback":False,"music_enabled":False,"external_assets_allowed":False,"generated_assets_allowed":False,"source_policy":"existing_supplied_media_only","notes":["Separate full-length edit; preview edit_decisions.json is not read or changed.","Only clean supplied product stills are used; promotional claim graphics and the conflicting 48-foot image are excluded.", "All supplied video clips are staged as silent, control-free 1080p derivatives; watermark and cursor patches are limited to the four affected installation clips."]}}
 
 
 def manifest_with_absolute_paths(project_root, manifest):
@@ -106,11 +182,15 @@ def main():
         if duration<30: raise RuntimeError("Narration duration invalid")
     project=import_project(a.source_project,"amazon-"+ASIN+"-narrated",projects_dir=a.work_dir,media_mode="copy")
     root=project/"artifacts"; script=json.loads((root/"script.json").read_text()); manifest=json.loads((root/"asset_manifest.json").read_text()); plan=json.loads((root/"scene_plan.json").read_text())
-    stills=[x for x in manifest["assets"] if x["type"]=="image" and "product_image_61" not in x["path"].lower()]
-    if not stills: raise RuntimeError("No approved product stills")
+    stills=[x for x in manifest["assets"] if x["type"]=="image" and Path(x["path"]).name in APPROVED_STILL_FILENAMES]
+    present_stills={Path(x["path"]).name for x in stills}
+    missing_stills=APPROVED_STILL_FILENAMES-present_stills
+    if missing_stills:
+        raise RuntimeError("Approved clean product stills missing: "+", ".join(sorted(missing_stills)))
     decisions=build_edit_decisions(script,manifest,plan,stills)
     validate_artifact("edit_decisions",decisions)
     render_manifest=manifest_with_absolute_paths(project,manifest)
+    render_manifest,cleaned_video_assets=prepare_clean_video_assets(project,render_manifest)
     source_audio=project/"assets"/"audio"/"voice.wav"
     if not source_audio.is_file():
         raise RuntimeError("Imported narration WAV missing from isolated project workspace")
@@ -125,6 +205,6 @@ def main():
     final_review=(result.data or {}).get("final_review")
     if not isinstance(final_review,dict) or final_review.get("status")!="pass":
         raise RuntimeError("Final review did not pass: "+str(final_review))
-    report={"provider":"Piper","model":MODEL,"female_voice":True,"fallback":False,"audio_duration_seconds":round(duration,2),"visual_cuts":len(decisions["cuts"]),"staged_assets":len(render_manifest["assets"]),"remotion_process_timeout_seconds":REMOTION_PROCESS_TIMEOUT_SECONDS,"remotion_concurrency":REMOTION_CONCURRENCY,"audio_peak_limit_dbfs":-2.0,"audio_source":"Piper narration only; source-video audio is not muxed","final_review":final_review}
+    report={"provider":"Piper","model":MODEL,"female_voice":True,"fallback":False,"audio_duration_seconds":round(duration,2),"visual_cuts":len(decisions["cuts"]),"staged_assets":len(render_manifest["assets"]),"remotion_process_timeout_seconds":REMOTION_PROCESS_TIMEOUT_SECONDS,"remotion_concurrency":REMOTION_CONCURRENCY,"audio_peak_limit_dbfs":-2.0,"audio_source":"Piper narration only; source-video audio is not muxed","visual_asset_cleanup":{"processed_video_assets":len(cleaned_video_assets),"player_controls_removed":True,"watermark_assets_cleaned":sorted(WINDOWS_WATERMARK_ASSETS),"cursor_assets_cleaned":sorted(CURSOR_ASSETS),"approved_still_images":sorted(APPROVED_STILL_FILENAMES),"still_image_fit":"contain","excluded_promotional_claim_images":True},"final_review":final_review}
     a.output.with_suffix(".report.json").write_text(json.dumps(report,indent=2,default=str)+"\n")
 if __name__=="__main__": main()

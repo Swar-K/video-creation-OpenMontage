@@ -150,6 +150,8 @@ def _copy_shared_assets(source: Path, stage_assets: Path) -> tuple[list[Path], d
         shutil.copy2(media, target)
         shared.append(target)
         index[f"X-A{asset_number:02d}"] = target
+        # Ad Agent currently emits X-Axx IDs and older scripts use X-xx.
+        index[f"X-{asset_number:02d}"] = target
     return shared, index
 
 def _write_staged_multi(

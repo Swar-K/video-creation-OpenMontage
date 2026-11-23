@@ -297,7 +297,7 @@ def main():
         "staged_assets":len(render_manifest["assets"]),
         "renderer":a.renderer, **renderer_details,
         "remotion_process_timeout_seconds":REMOTION_PROCESS_TIMEOUT_SECONDS if a.renderer=="remotion" else None,
-        "remotion_concurrency":REMOTION_CONCURRENCY,"audio_peak_limit_dbfs":-2.0,
+        "remotion_concurrency":REMOTION_CONCURRENCY if a.renderer=="remotion" else None,"audio_peak_limit_dbfs":-2.0,
         "audio_source":f"{voice_provider} narration only; source-video audio is not muxed",
         "visual_asset_cleanup":{
             "processed_video_assets":len(cleaned_video_assets),

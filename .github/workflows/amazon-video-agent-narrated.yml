@@ -1,4 +1,4 @@
-name: Amazon Video Agent — approved narrated video
+name: Make Video
 on:
   workflow_dispatch:
     inputs:
@@ -17,7 +17,7 @@ on:
         description: "Choose any voice configured in Ad Agent config.yaml, or Piper female"
         required: true
         type: choice
-        default: edge_female
+        default: piper_female
         options: [piper_female, eleven_female, eleven_female_2, eleven_male, eleven_male_2, edge_female, edge_female_2, edge_male, edge_male_2, openai_female, openai_male, inworld_female, inworld_male, openrouter_voxtral]
       confirm_tts_generation:
         description: "Approve narration generation with the selected voice"

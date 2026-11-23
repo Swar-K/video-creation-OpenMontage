@@ -79,30 +79,34 @@ downstream approvals and edit decisions are complete. Pull-request validation
 runs import and smoke tests only; it no longer tries to render the original
 sample as a side effect.
 
-## Top-N list projects and narration voices
+## Ad Agent project types and narration voices
 
-The approved narrated workflow also accepts an Ad Agent Top-N list project
-folder containing `list.yaml` and `script.md`. The adapter reads the 3-9
-product folder IDs from `list.yaml`, validates each product's
-`facts.yaml` and `assets/`, and stages product media with rank-specific
-filenames. Script lines marked `product: N` are paired with that product's
-media; general lines use representative list media. The source Ad Agent
-project and product folders are not modified.
+The approved narrated workflow accepts all three Ad Agent project types:
 
-Run **Actions -> Amazon Video Agent — approved narrated video** and enter the
-list folder name (not an individual ASIN) as `project_id`. The same two
-independent approvals are still required for narration and full rendering.
+| Ad Agent mode | Project folder input | Product folders |
+|---|---|---|
+| Single-product review | ASIN folder containing `facts.yaml`, `script.md`, `scenes.md`, and `assets/` | The selected folder |
+| Comparison | Folder containing `compare.yaml` and `script.md` | 2-3 existing product folders referenced in `compare.yaml` |
+| Top-N list | Folder containing `list.yaml` and `script.md` | 3-9 existing product folders referenced in `list.yaml` |
+
+For Compare and List, each product's existing `facts.yaml` and `assets/` are read from its sibling product folder. Inline script metadata such as `product: 1`, `product: 2`, or `product: all` maps narration sections to the corresponding product media. Shared media in the comparison/list folder's optional `assets/` directory is also eligible for general sections.
+
+The integration stages media and narration in an isolated OpenMontage workspace. It does not write generated audio, staging files, or rendered output into the Ad Agent checkout. The original Ad Agent folders remain unchanged.
+
+Run **Actions -> Amazon Video Agent — approved narrated video** and enter:
+- the ASIN for a Single project;
+- the comparison folder name for Compare;
+- the list folder name for List.
 
 ### Voice choices
 
-- `piper_female`: pinned, offline female Piper voice; the existing default.
-- `edge_female`: Ad Agent's Ava multilingual female voice.
-- `edge_female_2`: Ad Agent's Emma multilingual female voice.
-- `edge_male`: Ad Agent's Andrew multilingual male voice.
-- `edge_male_2`: Ad Agent's Brian multilingual male voice.
+The workflow offers the same four Microsoft Edge neural voice IDs configured in Ad Agent:
 
-An Edge selection uses that one voice for the complete narration and has no
-automatic fallback or gender/voice switching. It requires network access to
-the unofficial Microsoft Edge TTS endpoint. As Ad Agent's own configuration
-warns, this endpoint has no commercial licence statement; use Piper or a
-properly licensed speech service if you need explicit commercial-use certainty.
+- `edge_female`: Ava (`en-US-AvaMultilingualNeural`)
+- `edge_female_2`: Emma (`en-US-EmmaMultilingualNeural`)
+- `edge_male`: Andrew (`en-US-AndrewMultilingualNeural`)
+- `edge_male_2`: Brian (`en-US-BrianMultilingualNeural`)
+
+One selected voice is used for the entire narration. The default is Ava; Piper female remains an optional offline alternative. OpenMontage generates a fresh narration from the selected project's script using the chosen voice; it does not reuse or overwrite Ad Agent's existing `out/voice.wav`.
+
+The Edge choices use the unofficial Microsoft Edge TTS endpoint, as Ad Agent does. Ad Agent's configuration notes that this endpoint has no commercial licence statement. This is a technical integration of the same voice IDs, not a claim that Microsoft grants commercial-use rights. Both independent, default-false approvals for TTS generation and full rendering remain required.

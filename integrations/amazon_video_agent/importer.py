@@ -26,8 +26,9 @@ from lib.paths import PROJECTS_DIR
 from schemas.artifacts import validate_artifact
 
 MEDIA_TYPES = {
-    ".jpg": "image", ".jpeg": "image", ".png": "image", ".webp": "image",
-    ".mp4": "video", ".mov": "video", ".m4v": "video",
+    # Match Ad Agent's supported source-media extensions.
+    ".jpg": "image", ".jpeg": "image", ".png": "image", ".webp": "image", ".bmp": "image",
+    ".mp4": "video", ".mov": "video", ".m4v": "video", ".webm": "video", ".mkv": "video", ".avi": "video",
     ".wav": "audio", ".mp3": "audio", ".m4a": "audio",
 }
 SCENE_RE = re.compile(

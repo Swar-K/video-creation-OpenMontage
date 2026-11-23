@@ -14,9 +14,9 @@ from scripts.render_piper_narrated_project import (
     approved_product_stills,
     build_edit_decisions,
     clean_source_video_filter,
+    limit_narration_peaks,
     manifest_with_absolute_paths,
     prepare_clean_video_assets,
-    limit_narration_peaks,
     remotion_render_options,
     text_from,
 )
@@ -115,6 +115,7 @@ class PiperNarratedProjectTests(unittest.TestCase):
             script, manifest, plan, [manifest["assets"][1]]
         )
         validate_artifact("edit_decisions", decisions)
+        self.assertEqual(decisions["cuts"][1]["transform"]["animation"], "static")
         self.assertEqual(decisions["cuts"][1]["image_fit"], "contain")
         self.assertFalse(decisions["cuts"][1]["image_vignette"])
         self.assertEqual(decisions["cuts"][1]["backgroundColor"], "#FFFFFF")

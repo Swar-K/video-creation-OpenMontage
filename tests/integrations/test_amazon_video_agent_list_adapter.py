@@ -47,7 +47,7 @@ class AmazonProjectAdapterTests(unittest.TestCase):
                 "## intro\n[1] Here are the two products. | product: all | p: 1\n"
                 "## product_1\n[2] First product details. | product: 1 | assets: P1-A02 | p: 1\n"
                 "## product_2\n[3] Second product details. | product: 2 | p: 1\n"
-                "## verdict\n[4] Here is who each product suits. | product: all | p: 1\n"
+                "## head_to_head\n[4] Here is a direct comparison. | assets: P1-A02,P2-A02 | p: 1\n"
             )
         (project / "script.md").write_text(script, encoding="utf-8")
         for rank, product_id in enumerate(product_ids, 1):
@@ -80,6 +80,7 @@ class AmazonProjectAdapterTests(unittest.TestCase):
             self.assertEqual(len(scenes), 4)
             self.assertEqual(scenes[1]["refs"][0], "P01__photo-1.jpg")
             self.assertTrue(scenes[2]["refs"][0].startswith("P02__"))
+            self.assertEqual(scenes[3]["refs"], ["P01__photo-1.jpg", "P02__photo-2.jpg"])
             self.assertEqual(len(list((staged / "assets").iterdir())), 4)
 
     def test_explicit_script_assets_are_parsed(self):

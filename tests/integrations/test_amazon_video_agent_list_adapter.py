@@ -44,7 +44,7 @@ class AmazonProjectAdapterTests(unittest.TestCase):
         else:
             script = (
                 "# TITLE: Product comparison\n"
-                "## intro\n[1] Here are the two products. | product: all | p: 1\n"
+                "## intro\n[1] Here are the two products. | product: all | assets: X-01 | p: 1\n"
                 "## product_1\n[2] First product details. | product: 1 | assets: P1-A02 | p: 1\n"
                 "## product_2\n[3] Second product details. | product: 2 | p: 1\n"
                 "## head_to_head\n[4] Here is a direct comparison. | assets: P1-A02,P2-A02 | p: 1\n"

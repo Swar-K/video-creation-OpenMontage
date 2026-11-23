@@ -222,6 +222,8 @@ def synthesize_voice(text: str, voice_key: str, config_path: Path, output_wav: P
         )
         if sub.status_code == 200 and sub.json().get("tier") == "free":
             raise RuntimeError("Ad Agent warns ElevenLabs free-plan output is non-commercial; use a paid plan for affiliate videos.")
+        if sub.status_code != 200:
+            warnings.append("Could not verify the ElevenLabs subscription tier; confirm it is a paid commercial-use plan.")
         max_chars = 4500
     elif provider == "openai":
         if not approve_paid:
@@ -256,7 +258,7 @@ def synthesize_voice(text: str, voice_key: str, config_path: Path, output_wav: P
             _validate_audio(audio)
             rendered.append(audio)
         concat = temp_dir / "concat.txt"
-        concat.write_text("".join(f"file '{p.as_posix()}'\n" for p in rendered), encoding="utf-8")
+        concat.write_text("".join(f"file '{p.resolve().as_posix()}'\n" for p in rendered), encoding="utf-8")
         subprocess.run(
             ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "concat",
              "-safe", "0", "-i", str(concat), "-ar", "22050", "-ac", "1",

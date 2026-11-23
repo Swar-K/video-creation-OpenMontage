@@ -71,8 +71,8 @@ def _script_asset_map(script_path: Path, sections: list[dict[str, str]]) -> dict
     """Read optional explicit assets: metadata from Ad Agent script lines."""
     wanted = {section["id"] for section in sections}
     result: dict[str, list[str]] = {}
-    line_re = re.compile(r"^\\[(?P<id>[^\\]]+)\\]\\s*(?P<body>.*)$")
-    assets_re = re.compile(r"\\|\\s*assets\\s*:\\s*(?P<assets>[^|]+)", re.I)
+    line_re = re.compile(r"^\[(?P<id>[^\]]+)\]\s*(?P<body>.*)$")
+    assets_re = re.compile(r"\|\s*assets\s*:\s*(?P<assets>[^|]+)", re.I)
     for raw in script_path.read_text(encoding="utf-8").splitlines():
         match = line_re.match(raw.strip())
         if not match or match.group("id") not in wanted:

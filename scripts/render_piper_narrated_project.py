@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 """Approval-gated Piper female narration and full-length Remotion render."""
-import argparse,json,shutil,subprocess,wave
+import argparse,json,shutil,subprocess,sys,wave
 from pathlib import Path
+
+# When executed as `python scripts/...py`, Python places scripts/ rather than
+# the repository root on sys.path. Add the root before importing project modules.
+REPO_ROOT=Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0,str(REPO_ROOT))
+
 from integrations.amazon_video_agent.importer import import_project,_parse_script
 from tools.video.video_compose import VideoCompose
 ASIN="B08S3M2HKL"; MODEL="en_US-ljspeech-medium"

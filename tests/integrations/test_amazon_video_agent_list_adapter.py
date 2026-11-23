@@ -92,7 +92,7 @@ class AmazonProjectAdapterTests(unittest.TestCase):
             source = self._make_multi_project(Path(temp), "list")
             script = source / "script.md"
             script.write_text(
-                "# TITLE: list\\n## criteria\\n[9] General advice. | assets: X-01 | p: 1\\n",
+                "# TITLE: list\n## criteria\n[9] General advice. | assets: X-01 | p: 1\n",
                 encoding="utf-8",
             )
             _, sections = _parse_script(script)

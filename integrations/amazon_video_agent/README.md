@@ -78,3 +78,31 @@ Leave `render_native_preview` false for new projects until their own
 downstream approvals and edit decisions are complete. Pull-request validation
 runs import and smoke tests only; it no longer tries to render the original
 sample as a side effect.
+
+## Top-N list projects and narration voices
+
+The approved narrated workflow also accepts an Ad Agent Top-N list project
+folder containing `list.yaml` and `script.md`. The adapter reads the 3-9
+product folder IDs from `list.yaml`, validates each product's
+`facts.yaml` and `assets/`, and stages product media with rank-specific
+filenames. Script lines marked `product: N` are paired with that product's
+media; general lines use representative list media. The source Ad Agent
+project and product folders are not modified.
+
+Run **Actions -> Amazon Video Agent — approved narrated video** and enter the
+list folder name (not an individual ASIN) as `project_id`. The same two
+independent approvals are still required for narration and full rendering.
+
+### Voice choices
+
+- `piper_female`: pinned, offline female Piper voice; the existing default.
+- `edge_female`: Ad Agent's Ava multilingual female voice.
+- `edge_female_2`: Ad Agent's Emma multilingual female voice.
+- `edge_male`: Ad Agent's Andrew multilingual male voice.
+- `edge_male_2`: Ad Agent's Brian multilingual male voice.
+
+An Edge selection uses that one voice for the complete narration and has no
+automatic fallback or gender/voice switching. It requires network access to
+the unofficial Microsoft Edge TTS endpoint. As Ad Agent's own configuration
+warns, this endpoint has no commercial licence statement; use Piper or a
+properly licensed speech service if you need explicit commercial-use certainty.

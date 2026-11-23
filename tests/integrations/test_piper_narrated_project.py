@@ -113,15 +113,17 @@ class PiperNarratedProjectTests(unittest.TestCase):
             self.assertIn("both explicit approvals are required", result.stderr)
             self.assertFalse((base / "out.mp4").exists())
 
-    def test_workflow_is_project_selectable_and_keeps_two_false_by_default_approvals(self):
+    def test_workflow_is_project_selectable_and_keeps_three_false_by_default_approvals(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("project_id:", workflow)
         self.assertIn("inputs.project_id", workflow)
         self.assertIn("confirm_tts_generation:", workflow)
+        self.assertIn("confirm_paid_tts:", workflow)
         self.assertIn("confirm_full_render:", workflow)
-        self.assertEqual(workflow.count("default: false"), 2)
+        self.assertEqual(workflow.count("default: false"), 3)
         self.assertIn("needs: safety-gate", workflow)
         self.assertIn("inputs.confirm_tts_generation == true", workflow)
+        self.assertIn('if [ "${{ inputs.confirm_paid_tts }}" = "true" ]; then', workflow)
         self.assertIn("inputs.confirm_full_render == true", workflow)
 
     def test_workflow_uses_one_project_specific_output_for_render_validation_and_upload(self):

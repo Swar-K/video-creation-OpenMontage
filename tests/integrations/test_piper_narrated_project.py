@@ -9,8 +9,10 @@ import unittest
 from pathlib import Path
 
 from scripts.render_piper_narrated_project import (
+    CURSOR_ASSETS,
     REMOTION_CONCURRENCY,
     REMOTION_PROCESS_TIMEOUT_SECONDS,
+    WINDOWS_WATERMARK_ASSETS,
     approved_product_stills,
     build_edit_decisions,
     clean_source_video_filter,
@@ -122,6 +124,8 @@ class PiperNarratedProjectTests(unittest.TestCase):
         self.assertEqual(decisions["overlays"][0]["position"], "top-center")
 
     def test_video_cleanup_filter_removes_player_controls_and_targeted_overlays(self):
+        self.assertEqual(len(WINDOWS_WATERMARK_ASSETS), 10)
+        self.assertEqual(len(CURSOR_ASSETS), 4)
         affected = clean_source_video_filter("2026-10-23 17-27-34 - Trim7.mp4")
         self.assertIn("delogo=x=1010:y=620:w=250:h=55", affected)
         self.assertIn("delogo=x=345:y=375:w=30:h=35", affected)

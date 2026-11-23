@@ -89,7 +89,7 @@ The approved narrated workflow accepts all three Ad Agent project types:
 | Comparison | Folder containing `compare.yaml` and `script.md` | 2-3 existing product folders referenced in `compare.yaml` |
 | Top-N list | Folder containing `list.yaml` and `script.md` | 3-9 existing product folders referenced in `list.yaml` |
 
-For Compare and List, each product's existing `facts.yaml` and `assets/` are read from its sibling product folder. Inline script metadata such as `product: 1`, `product: 2`, or `product: all` maps narration sections to the corresponding product media. Shared media in the comparison/list folder's optional `assets/` directory is also eligible for general sections.
+For Compare and List, each product's existing `facts.yaml` and `assets/` are read from its sibling product folder. Inline script metadata such as `product: 1`, `product: 2`, or `product: all` maps narration sections to the corresponding product media. Explicit Ad Agent asset IDs such as `P1-A03`, `P2-A04`, and `X-A01` are resolved using the same sorted source-file indexing as Ad Agent, including sections that intentionally reference more than one product. Shared media in the comparison/list folder's optional `assets/` directory is also eligible for general sections.
 
 The integration stages media and narration in an isolated OpenMontage workspace. It does not write generated audio, staging files, or rendered output into the Ad Agent checkout. The original Ad Agent folders remain unchanged.
 

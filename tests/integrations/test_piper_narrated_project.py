@@ -12,6 +12,12 @@ from scripts.render_piper_narrated_project import (
     text_from,
 )
 from schemas.artifacts import validate_artifact
+from tools.video.video_compose import VideoCompose
+from scripts.render_piper_narrated_project import (
+    REMOTION_CONCURRENCY,
+    REMOTION_PROCESS_TIMEOUT_SECONDS,
+    remotion_render_options,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "render_piper_narrated_project.py"
@@ -19,6 +25,24 @@ WORKFLOW = ROOT / ".github" / "workflows" / "alien-draft-seal-narrated.yml"
 
 
 class PiperNarratedProjectTests(unittest.TestCase):
+    def test_full_render_uses_explicit_wall_clock_timeout_without_changing_browser_timeout(self):
+        self.assertEqual(REMOTION_PROCESS_TIMEOUT_SECONDS, 1800)
+        self.assertEqual(REMOTION_CONCURRENCY, 2)
+        self.assertEqual(
+            remotion_render_options(),
+            {
+                "remotion_process_timeout_seconds": 1800,
+                "remotion_concurrency": 2,
+            },
+        )
+        self.assertEqual(
+            VideoCompose._resolve_remotion_process_timeout(30, 1800),
+            1800,
+        )
+        self.assertEqual(VideoCompose._resolve_remotion_process_timeout(50), 750)
+        with self.assertRaisesRegex(ValueError, "must be at least 1"):
+            VideoCompose._resolve_remotion_process_timeout(10, 0)
+
     def test_extracts_narration_without_inline_product_metadata(self):
         with tempfile.TemporaryDirectory() as tmp:
             source = Path(tmp) / "script.md"

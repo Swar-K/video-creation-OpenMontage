@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Approval-gated Piper female narration and full-length Remotion render."""
+"""Approval-gated Ad Agent voice narration and full-length Remotion render."""
 import argparse,json,re,shutil,subprocess,sys,wave
 from pathlib import Path
 
@@ -228,8 +228,9 @@ def main():
         if not (source/name).exists():
             raise FileNotFoundError(f"Selected project is missing required input: {name}")
     narration=text_from(source/"script.md")
-    audio=source/"out"/"voice.wav"
-    audio.parent.mkdir(parents=True,exist_ok=True)
+    audio_dir=a.work_dir/"narration"
+    audio_dir.mkdir(parents=True,exist_ok=True)
+    audio=audio_dir/f"{project_id}.wav"
 
     if a.voice=="piper_female":
         if a.model is None or not a.model.is_file() or not Path(str(a.model)+".json").is_file() or not shutil.which("piper"):
@@ -256,7 +257,8 @@ def main():
             raise RuntimeError("Narration duration invalid")
 
     project=import_selected_project(
-        source,"amazon-"+project_id+"-narrated",projects_dir=a.work_dir,media_mode="copy"
+        source,"amazon-"+project_id+"-narrated",projects_dir=a.work_dir,media_mode="copy",
+        narration_audio=audio
     )
     root=project/"artifacts"
     script=json.loads((root/"script.json").read_text())

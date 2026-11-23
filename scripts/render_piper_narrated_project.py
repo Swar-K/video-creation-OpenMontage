@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Approval-gated Piper female narration and full-length Remotion render."""
-import argparse,json,shutil,subprocess,sys,wave
+import argparse,json,re,shutil,subprocess,sys,wave
 from pathlib import Path
 
 # When executed as `python scripts/...py`, Python places scripts/ rather than
@@ -140,7 +140,7 @@ def build_edit_decisions(script,manifest,plan,stills,project_id,voice_provider="
             still=stills[i%len(stills)]
         cuts.append({"id":s["id"]+"-still","source":still["id"],"in_seconds":round(start+clip_span,3),"out_seconds":round(end,3),"layer":"primary","transition_in":"cut","transition_out":"cut","transform":{"animation":"static"},"image_fit":"contain","image_vignette":False,"backgroundColor":"#FFFFFF"})
         label=s["label"].replace("-"," ").title()
-        rank_match=__import__("re").fullmatch(r"item_(\\d+)",s["label"],__import__("re").I)
+        rank_match=re.fullmatch(r"item_(\d+)",s["label"],re.I)
         if rank_match:
             label=f"Rank #{rank_match.group(1)}"
         overlays.append({"type":"section_title","in_seconds":round(start,3),"out_seconds":round(min(end,start+2.4),3),"text":label,"position":"top-center"})
@@ -276,7 +276,7 @@ def main():
     audio_for_render=limit_narration_peaks(
         source_audio,project/"assets"/"audio"/"voice-limited.wav"
     )
-    (root/"narrated_edit_decisions.json").write_text(json.dumps(decisions,indent=2)+"\\n")
+    (root/"narrated_edit_decisions.json").write_text(json.dumps(decisions,indent=2)+"\n")
     a.output.parent.mkdir(parents=True,exist_ok=True)
     result=VideoCompose().execute({
         "operation":"render","edit_decisions":decisions,"asset_manifest":render_manifest,

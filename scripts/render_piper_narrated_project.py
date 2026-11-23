@@ -139,7 +139,7 @@ def build_edit_decisions(script,manifest,plan,stills,project_id,voice_provider="
         if still is None:
             still=stills[i%len(stills)]
         cuts.append({"id":s["id"]+"-still","source":still["id"],"in_seconds":round(start+clip_span,3),"out_seconds":round(end,3),"layer":"primary","transition_in":"cut","transition_out":"cut","transform":{"animation":"static"},"image_fit":"contain","image_vignette":False,"backgroundColor":"#FFFFFF"})
-        label=s["label"].replace("-"," ").title()
+        label=s["label"].replace("-"," ").replace("_"," ").title()
         rank_match=re.fullmatch(r"item_(\d+)",s["label"],re.I)
         if rank_match:
             label=f"Rank #{rank_match.group(1)}"

@@ -24,7 +24,7 @@ on:
         type: boolean
         default: false
       confirm_paid_tts:
-        description: "Approve usage-billed TTS providers (ElevenLabs/OpenAI/OpenRouter or Inworld overage)"
+        description: "Approve API-backed TTS usage (ElevenLabs/OpenAI/Inworld/OpenRouter)"
         required: true
         type: boolean
         default: false

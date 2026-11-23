@@ -45,7 +45,7 @@ def _product_ids(config: dict[str, Any]) -> list[str]:
     result: list[str] = []
     for item in config["products"]:
         value = (item.get("id") or item.get("asin")) if isinstance(item, dict) else item
-        product_id = str(value or "").strip()
+        product_id = str(value or "").strip().upper()
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{2,39}", product_id):
             raise ValueError(f"Invalid product folder id in project YAML: {product_id!r}")
         if product_id in result:

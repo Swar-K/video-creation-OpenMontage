@@ -236,6 +236,8 @@ def synthesize_voice(text: str, voice_key: str, config_path: Path, output_wav: P
     else:
         if not settings.get("enabled", True):
             raise RuntimeError("Inworld is disabled in Ad Agent config.yaml.")
+        if not approve_paid:
+            raise RuntimeError("Inworld API use requires the per-run TTS usage approval because included allowance is account-specific.")
         warnings.append("Inworld budget is a conservative local per-run cap, not a provider quota; verify your included balance and commercial-use terms.")
         max_chars = int(settings.get("max_utf16_units", 1900))
 

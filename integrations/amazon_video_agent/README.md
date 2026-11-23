@@ -100,13 +100,19 @@ Run **Actions -> Amazon Video Agent — approved narrated video** and enter:
 
 ### Voice choices
 
-The workflow offers the same four Microsoft Edge neural voice IDs configured in Ad Agent:
+The workflow reads voice IDs, provider names, and model settings from the checked-out Ad Agent `config.yaml`. Its selector exposes every configured voice:
 
-- `edge_female`: Ava (`en-US-AvaMultilingualNeural`)
-- `edge_female_2`: Emma (`en-US-EmmaMultilingualNeural`)
-- `edge_male`: Andrew (`en-US-AndrewMultilingualNeural`)
-- `edge_male_2`: Brian (`en-US-BrianMultilingualNeural`)
+| Provider | Workflow voice keys |
+|---|---|
+| ElevenLabs | `eleven_female` Sarah, `eleven_female_2` Laura, `eleven_male` Brian, `eleven_male_2` Roger |
+| Microsoft Edge TTS | `edge_female` Ava, `edge_female_2` Emma, `edge_male` Andrew, `edge_male_2` Brian |
+| OpenAI | `openai_female` Nova, `openai_male` Onyx |
+| Inworld | `inworld_female` Ashley, `inworld_male` Dennis |
+| OpenRouter | `openrouter_voxtral` Voxtral |
+| Piper | `piper_female` offline alternative |
 
-One selected voice is used for the entire narration. The default is Ava; Piper female remains an optional offline alternative. OpenMontage generates a fresh narration from the selected project's script using the chosen voice; it does not reuse or overwrite Ad Agent's existing `out/voice.wav`.
+One selected voice is used for the entire narration; the workflow does not switch provider or gender on failure. API credentials must be added as GitHub Actions secrets named `ELEVENLABS_API_KEY`, `OPENAI_API_KEY`, `INWORLD_API_KEY`, and `OPENROUTER_API_KEY` for the corresponding services.
 
-The Edge choices use the unofficial Microsoft Edge TTS endpoint, as Ad Agent does. Ad Agent's configuration notes that this endpoint has no commercial licence statement. This is a technical integration of the same voice IDs, not a claim that Microsoft grants commercial-use rights. Both independent, default-false approvals for TTS generation and full rendering remain required.
+TTS and full-render approvals remain separate and required, both default false. A third `confirm_paid_tts` input defaults false and is required by usage-billed providers. OpenRouter is additionally blocked by the Ad Agent config until `voice.openrouter.allow_paid` and `commercial_use_confirmed` are enabled after checking the exact model's pricing and commercial-use terms. Inworld retains its configured per-run character safety cap; any overage requires both config permission and the per-run paid approval. Its usage ledger is isolated in the OpenMontage workspace, not written into Ad Agent.
+
+The Edge choices use the same unofficial Microsoft Edge TTS endpoint as Ad Agent. Ad Agent notes that this endpoint has no commercial licence statement; this integration does not claim Microsoft grants commercial-use rights. ElevenLabs free-plan output is blocked for monetized affiliate videos because Ad Agent's own preflight warns it is non-commercial. OpenAI, ElevenLabs, and OpenRouter calls can incur provider charges; check your accounts before approving them.

@@ -127,7 +127,15 @@ def _write_staged_list(source: Path, stage: Path) -> Path:
 
         videos = [p for p in candidates if MEDIA_TYPES.get(p.suffix.lower()) == "video"]
         images = [p for p in candidates if MEDIA_TYPES.get(p.suffix.lower()) == "image"]
-        chosen = (videos[:1] + images[:2]) or candidates[:1]
+        # Rotate source shots across narration sections so a product's first
+        # image is not repeated for every line in its list entry.
+        chosen = []
+        if videos:
+            chosen.append(videos[(index - 1) % len(videos)])
+        if images:
+            chosen.append(images[(index - 1) % len(images)])
+        if not chosen:
+            chosen = candidates[:1]
         refs = "; ".join(p.name for p in chosen)
         scene_lines.append(
             f"[s{index:02d}] type: product | ref: {refs or 'none'} | "

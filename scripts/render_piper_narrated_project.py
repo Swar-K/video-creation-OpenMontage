@@ -272,6 +272,9 @@ def main():
     report={
         "provider":voice_provider,"voice":voice_model,"gender":voice_gender,
         "fallback":False,"warning":voice_warning,
+        "voice_label":voice_info.get("label",voice_model),
+        "paid_tts_approved":voice_info.get("paid_tts_approved",False),
+        "tts_chunks":voice_info.get("chunks",1),
         "audio_duration_seconds":round(duration,2),"visual_cuts":len(decisions["cuts"]),
         "staged_assets":len(render_manifest["assets"]),
         "remotion_process_timeout_seconds":REMOTION_PROCESS_TIMEOUT_SECONDS,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
@@ -8,11 +9,16 @@ import unittest
 from pathlib import Path
 
 from scripts.render_piper_narrated_project import (
+    CURSOR_ASSETS,
     REMOTION_CONCURRENCY,
     REMOTION_PROCESS_TIMEOUT_SECONDS,
+    WINDOWS_WATERMARK_ASSETS,
+    approved_product_stills,
     build_edit_decisions,
-    manifest_with_absolute_paths,
+    clean_source_video_filter,
     limit_narration_peaks,
+    manifest_with_absolute_paths,
+    prepare_clean_video_assets,
     remotion_render_options,
     text_from,
 )
@@ -111,8 +117,81 @@ class PiperNarratedProjectTests(unittest.TestCase):
             script, manifest, plan, [manifest["assets"][1]]
         )
         validate_artifact("edit_decisions", decisions)
-        self.assertEqual(decisions["cuts"][1]["transform"]["animation"], "subtle-zoom-in")
+        self.assertEqual(decisions["cuts"][1]["transform"]["animation"], "static")
+        self.assertEqual(decisions["cuts"][1]["image_fit"], "contain")
+        self.assertFalse(decisions["cuts"][1]["image_vignette"])
+        self.assertEqual(decisions["cuts"][1]["backgroundColor"], "#FFFFFF")
         self.assertEqual(decisions["overlays"][0]["position"], "top-center")
+
+    def test_video_cleanup_filter_removes_player_controls_and_targeted_overlays(self):
+        self.assertEqual(len(WINDOWS_WATERMARK_ASSETS), 10)
+        self.assertEqual(len(CURSOR_ASSETS), 4)
+        affected = clean_source_video_filter("2026-10-23 17-27-34 - Trim7.mp4")
+        self.assertIn("delogo=x=1010:y=620:w=250:h=55", affected)
+        self.assertIn("delogo=x=345:y=375:w=30:h=35", affected)
+        self.assertIn("crop=iw:ih-28:0:0", affected)
+        self.assertIn("pad=1920:1080", affected)
+        ordinary_clip = clean_source_video_filter("2026-10-23 17-27-34 - Trim.mp4")
+        self.assertIn("delogo=x=1010:y=620:w=250:h=55", ordinary_clip)
+        self.assertNotIn("delogo=x=345:y=375", ordinary_clip)
+
+    def test_only_neutral_product_stills_are_selected(self):
+        manifest = {
+            "assets": [
+                {"type": "image", "path": "assets/images/product_image_01.jpg"},
+                {"type": "image", "path": "assets/images/product_image_31.jpg"},
+                {"type": "image", "path": "assets/images/product_image_51.jpg"},
+                {"type": "image", "path": "assets/images/product_image_61.jpg"},
+                {"type": "image", "path": "assets/images/product_image_81.jpg"},
+            ]
+        }
+        selected = approved_product_stills(manifest)
+        self.assertEqual(
+            {Path(asset["path"]).name for asset in selected},
+            {"product_image_51.jpg", "product_image_81.jpg"},
+        )
+
+    def test_video_cleanup_outputs_silent_full_hd_derivative_without_mutating_source(self):
+        if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
+            self.skipTest("ffmpeg and ffprobe are required")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "assets" / "video" / "2026-10-23 17-27-34 - Trim7.mp4"
+            source.parent.mkdir(parents=True)
+            subprocess.run(
+                [
+                    "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                    "-f", "lavfi", "-i", "color=c=blue:s=1280x720:r=30:d=0.4",
+                    "-f", "lavfi", "-i", "sine=frequency=440:duration=0.4",
+                    "-shortest", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                    "-c:a", "aac", str(source),
+                ],
+                check=True,
+                capture_output=True,
+                timeout=30,
+            )
+            original_manifest = {
+                "assets": [{"id": "door", "type": "video", "path": str(source)}]
+            }
+            cleaned_manifest, processed = prepare_clean_video_assets(root, original_manifest)
+            cleaned_path = Path(cleaned_manifest["assets"][0]["path"])
+            self.assertEqual(processed, [source.name])
+            self.assertTrue(cleaned_path.is_file())
+            self.assertEqual(original_manifest["assets"][0]["path"], str(source))
+            probe = subprocess.run(
+                [
+                    "ffprobe", "-v", "error", "-show_entries",
+                    "stream=codec_type,width,height", "-of", "json", str(cleaned_path),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            streams = json.loads(probe.stdout)["streams"]
+            video = next(stream for stream in streams if stream["codec_type"] == "video")
+            self.assertEqual((video["width"], video["height"]), (1920, 1080))
+            self.assertFalse(any(stream["codec_type"] == "audio" for stream in streams))
 
     def test_manifest_paths_resolve_inside_project_and_preserve_spaces(self):
         with tempfile.TemporaryDirectory() as tmp:

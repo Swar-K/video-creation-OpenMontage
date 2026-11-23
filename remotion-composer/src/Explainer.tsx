@@ -244,6 +244,8 @@ interface Cut {
   transition_in?: string;
   transition_out?: string;
   transition_duration?: number;
+  image_fit?: "cover" | "contain";
+  image_vignette?: boolean;
   transform?: {
     animation?: string;
     scale?: number;
@@ -350,9 +352,18 @@ const Vignette: React.FC = () => (
 // Enhanced Image Scene — spring physics, parallax, variety
 // ---------------------------------------------------------------------------
 
-const ImageScene: React.FC<{ src: string; animation?: string }> = ({
+const ImageScene: React.FC<{
+  src: string;
+  animation?: string;
+  fit?: "cover" | "contain";
+  backgroundColor?: string;
+  vignette?: boolean;
+}> = ({
   src,
   animation,
+  fit = "cover",
+  backgroundColor = "#0F172A",
+  vignette = true,
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
@@ -406,19 +417,19 @@ const ImageScene: React.FC<{ src: string; animation?: string }> = ({
   // "static" or "none" → just display
 
   return (
-    <AbsoluteFill style={{ overflow: "hidden", background: "#0F172A" }}>
+    <AbsoluteFill style={{ overflow: "hidden", background: backgroundColor }}>
       <Img
         src={resolveAsset(src)}
         style={{
           width: "100%",
           height: "100%",
-          objectFit: "cover",
+          objectFit: fit,
           opacity: fadeIn * fadeOut,
           transform: `scale(${scale}) translate(${translateX}px, ${translateY}px)`,
           willChange: "transform, opacity",
         }}
       />
-      <Vignette />
+      {vignette ? <Vignette /> : null}
     </AbsoluteFill>
   );
 };
@@ -763,7 +774,15 @@ const SceneRenderer: React.FC<{ cut: Cut; theme: ThemeConfig }> = ({ cut, theme 
   const animation = cut.animation || cut.transform?.animation;
 
   if (cut.source && isImage(cut.source)) {
-    return maybeWrapWithBg(<ImageScene src={cut.source} animation={animation} />);
+    return maybeWrapWithBg(
+      <ImageScene
+        src={cut.source}
+        animation={animation}
+        fit={cut.image_fit}
+        backgroundColor={cut.backgroundColor || theme.backgroundColor}
+        vignette={cut.image_vignette ?? true}
+      />,
+    );
   }
 
   if (cut.source && isVideo(cut.source)) {

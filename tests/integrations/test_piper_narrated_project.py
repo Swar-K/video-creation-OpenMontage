@@ -7,17 +7,15 @@ import unittest
 from pathlib import Path
 
 from scripts.render_piper_narrated_project import (
+    REMOTION_CONCURRENCY,
+    REMOTION_PROCESS_TIMEOUT_SECONDS,
     build_edit_decisions,
     manifest_with_absolute_paths,
+    remotion_render_options,
     text_from,
 )
 from schemas.artifacts import validate_artifact
 from tools.video.video_compose import VideoCompose
-from scripts.render_piper_narrated_project import (
-    REMOTION_CONCURRENCY,
-    REMOTION_PROCESS_TIMEOUT_SECONDS,
-    remotion_render_options,
-)
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "render_piper_narrated_project.py"

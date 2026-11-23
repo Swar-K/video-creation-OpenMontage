@@ -8,6 +8,7 @@ import yaml
 
 from integrations.amazon_video_agent.importer import _parse_scenes, _parse_script
 from integrations.amazon_video_agent.list_adapter import (
+    _script_asset_map,
     _script_product_map,
     _stage_single,
     _write_staged_multi,

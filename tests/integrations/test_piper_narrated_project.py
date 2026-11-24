@@ -18,7 +18,7 @@ from schemas.artifacts import validate_artifact
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "render_piper_narrated_project.py"
-WORKFLOW = ROOT / ".github" / "workflows" / "amazon-video-agent-narrated.yml"
+WORKFLOW = ROOT / ".github" / "workflows" / "create-video.yml"
 
 
 class PiperNarratedProjectTests(unittest.TestCase):

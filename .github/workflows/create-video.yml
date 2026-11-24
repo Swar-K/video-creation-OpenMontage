@@ -1,0 +1,232 @@
+name: Create Video
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: "Project folder under amazon-video-agent/projects (ASIN for Single; folder name for Compare/List)"
+        required: true
+        type: string
+        default: "B08S3M2HKL"
+      renderer:
+        description: "Rendering engine"
+        required: true
+        type: choice
+        default: adagent
+        options: [adagent, remotion]
+      voice:
+        description: "Voice configured in Ad Agent config.yaml, or Piper female"
+        required: true
+        type: choice
+        default: edge_female
+        options: [piper_female, eleven_female, eleven_female_2, eleven_male, eleven_male_2, edge_female, edge_female_2, edge_male, edge_male_2, openai_female, openai_male, inworld_female, inworld_male, openrouter_voxtral]
+      confirm_tts_generation:
+        description: "Approve narration generation"
+        required: true
+        type: boolean
+        default: false
+      confirm_full_render:
+        description: "Approve full-length MP4 rendering"
+        required: true
+        type: boolean
+        default: false
+      confirm_paid_tts:
+        description: "Approve API-backed TTS usage (ElevenLabs/OpenAI/Inworld/OpenRouter)"
+        required: true
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: create-video-${{ inputs.project_id || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate code and Ad Agent importer
+    if: github.event_name != 'workflow_dispatch' || always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout OpenMontage
+        uses: actions/checkout@v4
+      - name: Checkout Ad Agent sample projects
+        uses: actions/checkout@v4
+        with:
+          repository: Swar-K/amazon-video-agent
+          ref: main
+          path: amazon-video-agent
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install project dependencies
+        run: make install-dev
+      - name: Run lint and test suite
+        run: |
+          make lint
+          make test
+      - name: Run Ad Agent importer tests
+        run: python -m unittest discover -s tests/integrations -p 'test_*.py' -v
+      - name: Import a sample Ad Agent project
+        run: |
+          .venv/bin/python scripts/import_amazon_video_agent.py \
+            --amazon-project amazon-video-agent/projects/B00002NCJI \
+            --project-id amazon-B00002NCJI-ci \
+            --projects-dir "$RUNNER_TEMP/openmontage-projects" \
+            --media-mode copy
+      - name: Verify imported artifacts and approval boundaries
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          project = Path("${{ runner.temp }}/openmontage-projects/amazon-B00002NCJI-ci")
+          artifacts = project / "artifacts"
+          required = ("brief.json", "script.json", "scene_plan.json", "asset_manifest.json")
+          for name in required:
+              path = artifacts / name
+              assert path.is_file(), f"Missing artifact: {name}"
+              json.loads(path.read_text(encoding="utf-8"))
+          scene_plan = json.loads((artifacts / "scene_plan.json").read_text(encoding="utf-8"))
+          script = json.loads((artifacts / "script.json").read_text(encoding="utf-8"))
+          assert scene_plan["scenes"], "Scene plan is empty"
+          assert script["sections"], "Script sections are empty"
+          assert not (artifacts / "edit_decisions.json").exists(), "Importer must not invent edit decisions"
+          print(f"Importer validation passed: {len(scene_plan['scenes'])} scenes.")
+          print("Approval boundary check passed.")
+
+  safety-gate:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce independent approvals
+        if: inputs.confirm_tts_generation != true || inputs.confirm_full_render != true
+        run: |
+          echo "::error::Both TTS and full-render approvals are required. No media will be generated."
+          exit 1
+      - name: Confirm approvals
+        if: inputs.confirm_tts_generation == true && inputs.confirm_full_render == true
+        run: echo "Both approvals are present for this run only."
+
+  render:
+    name: Generate narrated video
+    needs: safety-gate
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm_tts_generation == true && inputs.confirm_full_render == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PROJECT_ID: ${{ inputs.project_id }}
+      VOICE: ${{ inputs.voice }}
+      RENDERER: ${{ inputs.renderer }}
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      INWORLD_API_KEY: ${{ secrets.INWORLD_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with: {path: openmontage}
+      - uses: actions/checkout@v4
+        with:
+          repository: Swar-K/amazon-video-agent
+          ref: main
+          path: amazon-video-agent
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.4"
+          cache: npm
+          cache-dependency-path: openmontage/remotion-composer/package-lock.json
+      - name: Install dependencies
+        working-directory: openmontage
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt piper-tts edge-tts opencv-python-headless
+          npm --prefix remotion-composer ci
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Download pinned Piper voice only when selected
+        if: inputs.voice == 'piper_female'
+        run: |
+          set -euo pipefail
+          mkdir -p openmontage/.tmp/piper
+          BASE="https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ljspeech/medium"
+          curl -fL "$BASE/en_US-ljspeech-medium.onnx" -o openmontage/.tmp/piper/en_US-ljspeech-medium.onnx
+          curl -fL "$BASE/en_US-ljspeech-medium.onnx.json" -o openmontage/.tmp/piper/en_US-ljspeech-medium.onnx.json
+          curl -fL "$BASE/MODEL_CARD" -o openmontage/.tmp/piper/MODEL_CARD
+          echo "6f52a751e2349abe7a76735eb09dc1875298c77ea2342ffd2fef79ff81b87f22  openmontage/.tmp/piper/en_US-ljspeech-medium.onnx" | sha256sum -c -
+          grep -qi "US English female" openmontage/.tmp/piper/MODEL_CARD
+          grep -qi "public domain" openmontage/.tmp/piper/MODEL_CARD
+      - name: Validate selected project
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$PROJECT_ID" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{2,59}$ ]]; then
+            echo "::error::Invalid project_id. Use 3-60 letters, digits, hyphens, or underscores."
+            exit 2
+          fi
+          SOURCE="amazon-video-agent/projects/$PROJECT_ID"
+          test -d "$SOURCE"
+          if [ -f "$SOURCE/list.yaml" ] && [ -f "$SOURCE/compare.yaml" ]; then
+            echo "::error::A project cannot contain both list.yaml and compare.yaml."
+            exit 2
+          elif [ -f "$SOURCE/list.yaml" ] || [ -f "$SOURCE/compare.yaml" ]; then
+            test -s "$SOURCE/script.md" || { echo "Multi-product project is missing script.md"; exit 2; }
+            echo "Detected Ad Agent Compare/List project; importer validates referenced product folders and media."
+          else
+            for required in facts.yaml script.md scenes.md assets; do
+              test -e "$SOURCE/$required" || { echo "Missing $required in $SOURCE"; exit 2; }
+            done
+          fi
+      - name: Generate and render
+        working-directory: openmontage
+        run: |
+          set -euo pipefail
+          OUTPUT="out/$PROJECT_ID-full-narrated.mp4"
+          args=(
+            --source-project "../amazon-video-agent/projects/$PROJECT_ID"
+            --work-dir .tmp/projects
+            --output "$OUTPUT"
+            --voice "$VOICE"
+            --renderer "$RENDERER"
+            --ad-agent-root ../amazon-video-agent
+            --voice-config ../amazon-video-agent/config.yaml
+            --approve-tts --approve-render
+          )
+          if [ "$VOICE" = "piper_female" ]; then
+            args+=(--model .tmp/piper/en_US-ljspeech-medium.onnx)
+          fi
+          if [ "${{ inputs.confirm_paid_tts }}" = "true" ]; then
+            args+=(--approve-paid-tts)
+          fi
+          python scripts/render_piper_narrated_project.py "${args[@]}"
+      - name: Validate audio/video and decode
+        working-directory: openmontage
+        run: |
+          set -euo pipefail
+          OUTPUT="out/$PROJECT_ID-full-narrated.mp4"
+          test -s "$OUTPUT"
+          ffprobe -v error -show_entries stream=codec_type,codec_name -of json "$OUTPUT" > out/streams.json
+          python -c "import json; s=json.load(open('out/streams.json'))['streams']; assert any(x.get('codec_type')=='video' and x.get('codec_name')=='h264' for x in s); assert any(x.get('codec_type')=='audio' for x in s)"
+          ffmpeg -v error -i "$OUTPUT" -f null -
+          test -s "${OUTPUT%.mp4}.report.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: amazon-${{ inputs.project_id }}-full-narrated-video
+          path: |
+            openmontage/out/${{ inputs.project_id }}-full-narrated.mp4
+            openmontage/out/${{ inputs.project_id }}-full-narrated.report.json
+          if-no-files-found: error
+          retention-days: 14

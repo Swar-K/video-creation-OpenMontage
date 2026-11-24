@@ -139,7 +139,7 @@ class AmazonProjectAdapterTests(unittest.TestCase):
     def test_workflow_exposes_every_voice_configured_by_ad_agent(self):
         workflow = (
             Path(__file__).resolve().parents[2]
-            / ".github" / "workflows" / "amazon-video-agent-narrated.yml"
+            / ".github" / "workflows" / "create-video.yml"
         ).read_text(encoding="utf-8")
         configured = [
             "eleven_female", "eleven_female_2", "eleven_male", "eleven_male_2",
